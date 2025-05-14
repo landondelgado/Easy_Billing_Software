@@ -1,6 +1,8 @@
 // server.js
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
 const { Pool } = require('pg');
 require('dotenv').config();
 
@@ -49,6 +51,12 @@ app.get('/agencydata', async (req, res) => {
         console.error('Error fetching agency data:', error);
         res.status(500).json({ error: 'Failed to fetch agency data' });
     }
+});
+
+app.use(express.static(path.join(__dirname, 'billingsoftware', 'build')));
+
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'billingsoftware', 'build', 'index.html'));
 });
 
 app.listen(port, '0.0.0.0', () => {
