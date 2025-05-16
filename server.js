@@ -61,17 +61,6 @@ if (process.env.NODE_ENV === 'production') {
 
 const PORT = process.env.PORT || 5000;
 
-if (app._router && app._router.stack) {
-  console.log("REGISTERED ROUTES:");
-  console.log(
-    app._router.stack
-      .filter(r => r.route)
-      .map(r => r.route.path)
-  );
-} else {
-  console.log("No routes registered yet.");
-}
-
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
