@@ -2,6 +2,11 @@
 
 import Papa from 'papaparse';
 
+const API_BASE = //connect frontend to backend
+  process.env.NODE_ENV === 'development'
+    ? 'http://localhost:5000'
+    : '';
+
 export async function parseInvoiceCSV(csvText, citiesData, agencyData, promptForCityType) {
   const groupedData = {};
   const matrixData = {};
@@ -76,7 +81,7 @@ export async function parseInvoiceCSV(csvText, citiesData, agencyData, promptFor
         else if (cityType === 'Out of Town') newCity.oot = true;
         else if (cityType === 'Extended') newCity.extended = true;
 
-        await fetch('http://localhost:5000/cities', {
+        await fetch(`${API_BASE}/cities`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newCity)
