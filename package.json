@@ -2,7 +2,7 @@
   "name": "easy_billing_software",
   "version": "0.1.0",
   "scripts": {
-    "start": "node server.js",
+    "start": "node start.js",
     "billingsoftware": "npm start --prefix billingsoftware",
     "backend": "node server.js",
     "postinstall": "cd billingsoftware && npm install && npm run build"
