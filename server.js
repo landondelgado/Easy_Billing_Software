@@ -2,7 +2,6 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const fs = require('fs');
 const { Pool } = require('pg');
 require('dotenv').config();
 
@@ -12,15 +11,11 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-let pool;
-if (process.env.DATABASE_URL) {
-  pool = new Pool({
+// Set up PostgreSQL connection to Timescale Cloud
+const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
-  });
-} else {
-  console.warn("Warning: DATABASE_URL not set — skipping PostgreSQL connection.");
-}
+});
 
 // Routes
 app.post('/cities', async (req, res) => {
@@ -57,12 +52,15 @@ app.get('/agencydata', async (req, res) => {
     }
 });
 
-app.use(express.static(path.join(__dirname, 'billingsoftware', 'build')));
+if (process.env.NODE_ENV === 'production') {
+    app.use(express.static(path.join(__dirname, 'billingsoftware/build')));
+    app.get('*name', (req, res) => {
+        res.sendFile(path.join(__dirname, 'billingsoftware/build/index.html'));
+    });
+}
 
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'billingsoftware', 'build', 'index.html'));
-});
+const PORT = process.env.PORT || 5000;
 
-app.listen(port, '0.0.0.0', () => {
-    console.log(`Server running on port ${port}`);
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
