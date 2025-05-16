@@ -7,6 +7,11 @@ import ExcelJS from 'exceljs';
 // Change later
 const invoiceNumber = 12999;
 
+const API_BASE = //connect frontend to backend
+  process.env.NODE_ENV === 'development'
+    ? 'http://localhost:5000'
+    : '';
+
 const InvoiceUploader = () => {
     const [parsedData, setParsedData] = useState(null);
     const [pendingCity, setPendingCity] = useState(null);
@@ -58,8 +63,8 @@ const InvoiceUploader = () => {
     if (!file) return;
 
     const [citiesRes, agencyRes] = await Promise.all([
-      fetch('http://localhost:5000/cities'),
-      fetch('http://localhost:5000/agencydata')
+      fetch(`${API_BASE}/cities`),
+      fetch(`${API_BASE}/agencydata`)
     ]);
 
     const citiesData = await citiesRes.json();

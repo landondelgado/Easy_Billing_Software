@@ -1,0 +1,17 @@
+{
+  "name": "easy_billing_software",
+  "version": "0.1.0",
+  "scripts": {
+    "start": "node start.js",
+    "billingsoftware": "npm start --prefix billingsoftware",
+    "backend": "node server.js",
+    "postinstall": "cd billingsoftware && npm install && npm run build"
+  },
+  "dependencies": {
+    "concurrently": "^9.1.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "pg": "^8.16.0"
+  }
+}
