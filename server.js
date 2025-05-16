@@ -12,11 +12,15 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Set up PostgreSQL connection to Timescale Cloud
-const pool = new Pool({
+let pool;
+if (process.env.DATABASE_URL) {
+  pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
-});
+  });
+} else {
+  console.warn("Warning: DATABASE_URL not set — skipping PostgreSQL connection.");
+}
 
 // Routes
 app.post('/cities', async (req, res) => {
