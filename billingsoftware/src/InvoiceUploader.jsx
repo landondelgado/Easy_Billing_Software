@@ -202,7 +202,7 @@ const InvoiceUploader = () => {
 
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    saveAs(blob, 'agency_invoice_summary.xlsx');
+    saveAs(blob, 'AgencySummary.xlsx');
   };
 
   const handleMatrixDownload = async () => {
@@ -477,7 +477,7 @@ const InvoiceUploader = () => {
 
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      saveAs(blob, 'agency_visit_matrix.xlsx');
+      saveAs(blob, 'AgencyDetail.xlsx');
   };
 
 
@@ -679,40 +679,57 @@ const InvoiceUploader = () => {
           worksheet.getRow(36).font = { bold: true };
 
           // Disciplines to check
-          const disciplines = ['PT', 'OT', 'ST'];
-          let totalAmount = 0;
+          // const disciplines = ['PT', 'OT', 'ST'];
+          // let totalAmount = 0;
 
-          disciplines.forEach((disc, index) => {
-              const row = 37 + index;
-              let visits = 0;
-              let amountDue = 0;
+          // disciplines.forEach((disc, index) => {
+          //     const row = 37 + index;
+          //     let visits = 0;
+          //     let amountDue = 0;
 
-              // Sum visit counts and totals from breakdown
-              ['EVAL', 'RE-EVAL', 'DISCHARGE', 'VISIT', 'x', 'o'].forEach(type => {
-                  const record = breakdown?.[type]?.[disc];
-                  if (record) {
-                      visits += record.count;
-                      amountDue += record.count * record.rate;
-                  }
-              });
+          //     // Sum visit counts and totals from breakdown
+          //     ['EVAL', 'RE-EVAL', 'DISCHARGE', 'VISIT', 'x', 'o'].forEach(type => {
+          //         const record = breakdown?.[type]?.[disc];
+          //         if (record) {
+          //             visits += record.count;
+          //             amountDue += record.count * record.rate;
+          //         }
+          //     });
 
-              worksheet.getCell(`H${row}`).value = disc;
-              worksheet.getCell(`I${row}`).value = visits;
-              worksheet.getCell(`J${row}`).value = amountDue;
-              worksheet.getCell(`J${row}`).numFmt = '"$"#,##0.00';
-              totalAmount += amountDue;
-          });
+          //     worksheet.getCell(`H${row}`).value = disc;
+          //     worksheet.getCell(`I${row}`).value = visits;
+          //     worksheet.getCell(`J${row}`).value = amountDue;
+          //     worksheet.getCell(`J${row}`).numFmt = '"$"#,##0.00';
+          //     totalAmount += amountDue;
+          // });
+
+          // PT Row
+          worksheet.getCell('H37').value = 'PT';
+          worksheet.getCell('I37').value = { formula: `SUM(B25:B28)` };
+          worksheet.getCell('J37').value = { formula: `SUM(D25:D31)` };
+          worksheet.getCell('J37').numFmt = '"$"#,##0.00';
+
+          // OT Row
+          worksheet.getCell('H38').value = 'OT';
+          worksheet.getCell('I38').value = { formula: `SUM(E25:E28)` };
+          worksheet.getCell('J38').value = { formula: `SUM(G25:G31)` };
+          worksheet.getCell('J38').numFmt = '"$"#,##0.00';
+
+          // ST Row
+          worksheet.getCell('H39').value = 'ST';
+          worksheet.getCell('I39').value = { formula: `SUM(H25:H28)` };
+          worksheet.getCell('J39').value = { formula: `SUM(J25:J31)` };
+          worksheet.getCell('J39').numFmt = '"$"#,##0.00';
 
           // Mileage row
           worksheet.getCell('H40').value = 'Mileage';
           worksheet.getCell('I40').value = agencyMileage;
           worksheet.getCell('J40').value = agencyMileageTotal;
           worksheet.getCell('J40').numFmt = '"$"#,##0.00';
-          totalAmount += agencyMileageTotal;
 
           // Amount due
           worksheet.getCell('H41').value = 'AMOUNT DUE BY: ';
-          worksheet.getCell('J41').value = totalAmount;
+          worksheet.getCell('J41').value = { formula: `SUM(J37:J40)` };
           worksheet.getCell('J41').numFmt = '"$"#,##0.00';
           worksheet.getCell('H41').font = { bold: true, color: { argb: 'FFFF0000'} , size: 12 };
           worksheet.getCell('J41').font = { bold: true, color: { argb: 'FFFF0000'} , size: 14 };
@@ -785,49 +802,69 @@ const InvoiceUploader = () => {
 
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-      saveAs(blob, "SummaryBreakdown.xlsx");
+      saveAs(blob, "AgencyInvoice.xlsx");
   };
 
   return (
-    <div className="p-4">
-      <h2 className="text-xl font-bold mb-4">Upload Invoice CSV</h2>
-      <input type="file" accept=".csv" onChange={handleFileChange} className="mb-4" />
-
+    <div className="max-w-4xl mx-auto p-8 bg-white shadow-xl rounded-lg border border-blue-100">
+      <h2 className="text-3xl font-bold text-blue-900 mb-6 text-center tracking-wide">
+        Upload Invoice CSV
+      </h2>
+  
+      <input
+        type="file"
+        accept=".csv"
+        onChange={handleFileChange}
+        className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4
+                   file:rounded-md file:border-0
+                   file:text-sm file:font-semibold
+                   file:bg-sky-100 file:text-blue-900
+                   hover:file:bg-sky-200 mb-6"
+      />
+  
       {pendingCity && (
-        <div className="mb-4 border p-4 bg-yellow-100">
-          <p className="mb-2 font-semibold">City "{pendingCity}" not found. Please classify it:</p>
-          <div className="flex gap-4">
-            <button onClick={() => handleCityTypeSelection('In Town')} className="bg-blue-500 text-white px-4 py-2 rounded">In Town</button>
-            <button onClick={() => handleCityTypeSelection('Out of Town')} className="bg-blue-500 text-white px-4 py-2 rounded">Out of Town</button>
-            <button onClick={() => handleCityTypeSelection('Extended')} className="bg-blue-500 text-white px-4 py-2 rounded">Extended</button>
+        <div className="mb-6 border border-yellow-400 p-5 rounded-md bg-yellow-50">
+          <p className="mb-3 text-sm font-medium text-gray-800">
+            City "<span className="font-semibold">{pendingCity}</span>" not found. Please classify it:
+          </p>
+          <div className="flex gap-3">
+            {['In Town', 'Out of Town', 'Extended'].map((label) => (
+              <button
+                key={label}
+                onClick={() => handleCityTypeSelection(label)}
+                className="px-4 py-2 text-sm font-medium rounded-md text-white bg-sky-600 hover:bg-sky-700"
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
       )}
-
+  
       {parsedData && (
-        <div className="flex gap-4 flex-wrap">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-6">
           <button
             onClick={handleSummaryDownload}
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+            className="w-full px-4 py-3 text-white bg-green-600 hover:bg-green-700 rounded-lg text-sm font-semibold"
           >
             Download Agency Summary Excel
           </button>
           <button
             onClick={handleMatrixDownload}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            className="w-full px-4 py-3 text-white bg-sky-600 hover:bg-sky-700 rounded-lg text-sm font-semibold"
           >
             Download Agency Visit Matrix
           </button>
           <button
             onClick={handleSummaryBreakdownDownload}
-            className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+            className="w-full px-4 py-3 text-white bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-semibold"
           >
             Download Agency Type Breakdown
           </button>
         </div>
       )}
     </div>
-  );
+  );  
 };
 
 export default InvoiceUploader;
