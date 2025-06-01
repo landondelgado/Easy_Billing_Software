@@ -52,6 +52,28 @@ app.get('/agencydata', async (req, res) => {
     }
 });
 
+// GET current invoice number
+app.get('/invoicenumber', async (req, res) => {
+  const result = await pool.query('SELECT current_invoice_number FROM invoicecounter WHERE id = 1');
+  res.json({ invoiceNumber: result.rows[0].current_invoice_number });
+});
+
+// POST update invoice number
+app.post('/invoicenumber', async (req, res) => {
+    const { invoiceNumber } = req.body;
+    if (typeof invoiceNumber !== 'number') {
+        return res.status(400).json({ error: 'invoiceNumber must be a number' });
+    }
+
+    try {
+        await pool.query('UPDATE invoicecounter SET current_invoice_number = $1 WHERE id = 1', [invoiceNumber]);
+        res.json({ message: 'Invoice number updated' });
+    } catch (error) {
+        console.error('Error updating invoice number:', error);
+        res.status(500).json({ error: 'Failed to update invoice number' });
+    }
+});
+
 if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.join(__dirname, 'billingsoftware/build')));
     app.get('*name', (req, res) => {

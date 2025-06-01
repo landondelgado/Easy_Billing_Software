@@ -4,18 +4,15 @@ import { parseInvoiceCSV } from './parseInvoiceData';
 import { saveAs } from 'file-saver';
 import ExcelJS from 'exceljs';
 
-// Change later
-const invoiceNumber = 12999;
-
 const API_BASE = //connect frontend to backend
   process.env.NODE_ENV === 'development'
     ? 'http://localhost:5000'
     : '';
 
 const InvoiceUploader = () => {
-    const [parsedData, setParsedData] = useState(null);
-    const [pendingCity, setPendingCity] = useState(null);
-    const [cityPromptResolve, setCityPromptResolve] = useState(null);
+  const [parsedData, setParsedData] = useState(null);
+  const [pendingCity, setPendingCity] = useState(null);
+  const [cityPromptResolve, setCityPromptResolve] = useState(null);
   
   function columnLetterToNumber(letter) {
       let col = 0;
@@ -104,7 +101,34 @@ const InvoiceUploader = () => {
     }
   };
 
-  const handleSummaryDownload = async () => {
+  const assignInvoiceNumbers = async () => {
+    const res = await fetch(`${API_BASE}/invoicenumber`);
+    const json = await res.json();
+    const { invoiceNumber: currentInvoiceRaw } = json;
+
+    let currentInvoice = Number(currentInvoiceRaw);
+    if (isNaN(currentInvoice)) {
+      console.error('Fetched invoice number is not a valid number:', currentInvoiceRaw);
+      return null;
+    }
+
+    const agencies = Object.keys(parsedData.matrix || parsedData.summary || {});
+    const map = {};
+
+    for (const agency of agencies) {
+      map[agency] = currentInvoice++;
+    }
+
+    await fetch(`${API_BASE}/invoicenumber`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ invoiceNumber: currentInvoice })
+    });
+
+    return map;
+  };
+
+  const handleSummaryDownload = async (map) => {
     if (!parsedData) return;
 
     const summary = parsedData.flattened.reduce((acc, row) => {
@@ -163,7 +187,7 @@ const InvoiceUploader = () => {
     const agencyStartRow = worksheet.lastRow.number + 1;
 
     summaryArray.forEach(({ Agency, Amount, Visits, Upats, Mpats }) => {
-      worksheet.addRow([invoiceNumber,Agency, Amount, Visits, Upats, Mpats]);
+      worksheet.addRow([map?.[Agency] ?? '',Agency, Amount, Visits, Upats, Mpats]);
     });
 
     const agencyEndRow = worksheet.lastRow.number;
@@ -205,7 +229,7 @@ const InvoiceUploader = () => {
     saveAs(blob, 'AgencySummary.xlsx');
   };
 
-  const handleMatrixDownload = async () => {
+  const handleMatrixDownload = async (map) => {
     if (!parsedData?.matrix) return;
 
     const loadHeaderImageBase64 = async () => {
@@ -253,7 +277,6 @@ const InvoiceUploader = () => {
 
         const pageSize = 38;
         const numPages = Math.ceil(sortedKeys.length / pageSize) || 1;
-        // let rowPointer = 0;
         let headerRow = null;
         const headerRows = [];
 
@@ -280,7 +303,7 @@ const InvoiceUploader = () => {
             rowPointer++;
 
             worksheet.getCell(`M${rowPointer}`).value = `Invoice:`;
-            worksheet.getCell(`N${rowPointer}`).value = `${invoiceNumber}`;
+            worksheet.getCell(`N${rowPointer}`).value = `${map[agency]}`;
             worksheet.getCell(`M${rowPointer}`).font = { size: 10, name: 'Arial', color: { argb: 'FF002D6A' } };
             worksheet.getCell(`N${rowPointer}`).font = { size: 10, name: 'Arial', color: { argb: 'FF002D6A' } };
             worksheet.getCell(`M${rowPointer}`).alignment = { vertical: 'middle', horizontal: 'right' };
@@ -481,7 +504,7 @@ const InvoiceUploader = () => {
   };
 
 
-  const handleSummaryBreakdownDownload = async () => {
+  const handleSummaryBreakdownDownload = async (map) => {
       if (!parsedData?.summary) return;
 
       const loadHeaderImageBase64 = async () => {
@@ -539,7 +562,7 @@ const InvoiceUploader = () => {
           worksheet.getCell(`I13`).alignment = { vertical: 'middle', horizontal: 'left' };
 
           worksheet.getCell('H14').value = `Invoice: `;
-          worksheet.getCell('I14').value = `${invoiceNumber}`;
+          worksheet.getCell('I14').value = `${map[agency]}`;
           worksheet.getCell(`H14`).font = { size: 10, name: 'Arial', color: { argb: 'FF002D6A' } };
           worksheet.getCell(`I14`).font = { size: 10, name: 'Arial', color: { argb: 'FF002D6A' } };
           worksheet.getCell(`H14`).alignment = { vertical: 'middle', horizontal: 'right' };
@@ -678,31 +701,6 @@ const InvoiceUploader = () => {
           worksheet.getCell(`J36`).border = { top: {style: 'medium'}, bottom: {style: 'medium'}, left: {style: 'medium'}, right: {style: 'medium'} };
           worksheet.getRow(36).font = { bold: true };
 
-          // Disciplines to check
-          // const disciplines = ['PT', 'OT', 'ST'];
-          // let totalAmount = 0;
-
-          // disciplines.forEach((disc, index) => {
-          //     const row = 37 + index;
-          //     let visits = 0;
-          //     let amountDue = 0;
-
-          //     // Sum visit counts and totals from breakdown
-          //     ['EVAL', 'RE-EVAL', 'DISCHARGE', 'VISIT', 'x', 'o'].forEach(type => {
-          //         const record = breakdown?.[type]?.[disc];
-          //         if (record) {
-          //             visits += record.count;
-          //             amountDue += record.count * record.rate;
-          //         }
-          //     });
-
-          //     worksheet.getCell(`H${row}`).value = disc;
-          //     worksheet.getCell(`I${row}`).value = visits;
-          //     worksheet.getCell(`J${row}`).value = amountDue;
-          //     worksheet.getCell(`J${row}`).numFmt = '"$"#,##0.00';
-          //     totalAmount += amountDue;
-          // });
-
           // PT Row
           worksheet.getCell('H37').value = 'PT';
           worksheet.getCell('I37').value = { formula: `SUM(B25:B28)` };
@@ -805,12 +803,21 @@ const InvoiceUploader = () => {
       saveAs(blob, "AgencyInvoice.xlsx");
   };
 
+  const handleDownloadAll = async () => {
+    const map = await assignInvoiceNumbers();
+    if (!map) return;
+
+    await handleSummaryDownload(map);
+    await handleMatrixDownload(map);
+    await handleSummaryBreakdownDownload(map);
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-8 bg-white shadow-xl rounded-lg border border-blue-100">
       <h2 className="text-3xl font-bold text-blue-900 mb-6 text-center tracking-wide">
         Upload Invoice CSV
       </h2>
-  
+
       <input
         type="file"
         accept=".csv"
@@ -821,7 +828,7 @@ const InvoiceUploader = () => {
                    file:bg-sky-100 file:text-blue-900
                    hover:file:bg-sky-200 mb-6"
       />
-  
+
       {pendingCity && (
         <div className="mb-6 border border-yellow-400 p-5 rounded-md bg-yellow-50">
           <p className="mb-3 text-sm font-medium text-gray-800">
@@ -840,31 +847,19 @@ const InvoiceUploader = () => {
           </div>
         </div>
       )}
-  
+
       {parsedData && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-6">
+        <div className="mt-6">
           <button
-            onClick={handleSummaryDownload}
-            className="w-full px-4 py-3 text-white bg-green-600 hover:bg-green-700 rounded-lg text-sm font-semibold"
+            onClick={handleDownloadAll}
+            className="w-full px-6 py-4 text-white bg-blue-700 hover:bg-blue-800 rounded-lg text-base font-semibold"
           >
-            Download Agency Summary Excel
-          </button>
-          <button
-            onClick={handleMatrixDownload}
-            className="w-full px-4 py-3 text-white bg-sky-600 hover:bg-sky-700 rounded-lg text-sm font-semibold"
-          >
-            Download Agency Visit Matrix
-          </button>
-          <button
-            onClick={handleSummaryBreakdownDownload}
-            className="w-full px-4 py-3 text-white bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-semibold"
-          >
-            Download Agency Type Breakdown
+            Download All Excel Files
           </button>
         </div>
       )}
     </div>
-  );  
+  );
 };
 
 export default InvoiceUploader;
