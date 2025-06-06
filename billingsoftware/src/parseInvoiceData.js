@@ -1,11 +1,96 @@
 // Parse Invoice With Roles
 
 import Papa from 'papaparse';
+import ExcelJS from 'exceljs';
 
-const API_BASE = //connect frontend to backend
+const API_BASE =
   process.env.NODE_ENV === 'development'
     ? 'http://localhost:5000'
     : '';
+
+const disciplineMap = {
+  'PT': 'PT',
+  'PTA': 'PT',
+  'OT': 'OT',
+  'COTA': 'OT',
+  'ST': 'ST'
+};
+
+const agencyMap = {
+  'LUB': 'Calvert-Lubbock',
+  'LVL': 'Calvert-Levelland',
+  'LAM': 'Calvert-Lamesa',
+  'LIT': 'Calvert-Littlefield',
+  '5LU': 'Calvert-Hospice',
+  'PTB': 'Calvert-Petersburg',
+  'CRS': 'Calvert-Crosbyton',
+  'POS': 'Calvert-Post',
+  'PLV': 'Calvert-Plainview',
+  'VEN': 'Calvert-Ventura'
+};
+
+export async function parseCalvertCSV(fileBuffer) {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(fileBuffer);
+  const worksheet = workbook.worksheets[0];
+
+  if (!worksheet) throw new Error("Excel file has no worksheets.");
+
+  // Find header row and build header index
+  let headerRow = worksheet.getRow(1);
+  const headers = {};
+
+  headerRow.eachCell((cell, colNumber) => {
+    headers[cell.text.trim()] = colNumber;
+  });
+
+  const requiredHeaders = [
+    'Primary Job Desc',
+    'Client Branch',
+    'Client Name',
+    'Service Date',
+    'Rate',
+    'Travel- AM'
+  ];
+
+  for (let field of requiredHeaders) {
+    if (!headers[field]) {
+      throw new Error(`Missing column: ${field}`);
+    }
+  }
+
+  const data = [];
+
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return;
+
+    try {
+      const jobDesc = row.getCell(headers['Primary Job Desc'])?.text?.trim();
+      const branch = row.getCell(headers['Client Branch'])?.text?.trim();
+      const name = row.getCell(headers['Client Name'])?.text?.trim();
+      const date = row.getCell(headers['Service Date'])?.text?.trim();
+      const rate = parseFloat(row.getCell(headers['Rate'])?.value) || 0;
+      const miles = parseFloat(row.getCell(headers['Travel- AM'])?.value) || 0;
+
+      if (!jobDesc || !branch || !name || !date) return;
+
+      const Disc = disciplineMap[jobDesc.toUpperCase()] || jobDesc;
+      const Agency = agencyMap[branch.toUpperCase()] || branch;
+
+      data.push({ Disc, Agency, Name: name, Date: date, Rate: rate, miles });
+    } catch (err) {
+      console.warn(`Skipping row ${rowNumber}:`, err.message);
+    }
+  });
+
+  data.sort((a, b) => {
+    const agencyCompare = a.Agency.toLowerCase().localeCompare(b.Agency.toLowerCase());
+    if (agencyCompare !== 0) return agencyCompare;
+    return a.Name.toLowerCase().localeCompare(b.Name.toLowerCase());
+  });
+
+  return data;
+}
 
 export async function parseInvoiceCSV(csvText, citiesData, agencyData, promptForCityType) {
   const groupedData = {};

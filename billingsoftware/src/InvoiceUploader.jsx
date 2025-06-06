@@ -1,6 +1,6 @@
 // InvoiceUploader.jsx
 import React, { useState } from 'react';
-import { parseInvoiceCSV } from './parseInvoiceData';
+import { parseInvoiceCSV, parseCalvertCSV } from './parseInvoiceData';
 import { saveAs } from 'file-saver';
 import ExcelJS from 'exceljs';
 
@@ -13,6 +13,8 @@ const InvoiceUploader = () => {
   const [parsedData, setParsedData] = useState(null);
   const [pendingCity, setPendingCity] = useState(null);
   const [cityPromptResolve, setCityPromptResolve] = useState(null);
+  const [step, setStep] = useState(1);
+  const [calvertData, setCalvertData] = useState(null);
   
   function columnLetterToNumber(letter) {
       let col = 0;
@@ -59,38 +61,42 @@ const InvoiceUploader = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const [citiesRes, agencyRes] = await Promise.all([
-      fetch(`${API_BASE}/cities`),
-      fetch(`${API_BASE}/agencydata`)
-    ]);
+    if (step === 1) {
+      // Step 1: Upload CSV
+      const [citiesRes, agencyRes] = await Promise.all([
+        fetch(`${API_BASE}/cities`),
+        fetch(`${API_BASE}/agencydata`)
+      ]);
 
-    const citiesData = await citiesRes.json();
-    const agencyData = await agencyRes.json();
+      const citiesData = await citiesRes.json();
+      const agencyData = await agencyRes.json();
 
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const csvText = event.target.result;
-
-      const result = await parseInvoiceCSV(
-        csvText,
-        citiesData,
-        agencyData,
-        async (city) => {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const csvText = event.target.result;
+        const result = await parseInvoiceCSV(csvText, citiesData, agencyData, async (city) => {
           return new Promise((resolve) => {
             setPendingCity(city);
             setCityPromptResolve(() => resolve);
           });
-        }
-      );
+        });
 
-      const flattened = Object.entries(result.records).flatMap(([agency, records]) =>
-        records.map((record) => ({ ...record, Agency: agency }))
-      );
+        const flattened = Object.entries(result.records).flatMap(([agency, records]) =>
+          records.map((record) => ({ ...record, Agency: agency }))
+        );
 
-      setParsedData({ ...result, flattened, agencyData });
-    };
+        setParsedData({ ...result, flattened, agencyData });
+        setStep(2); // Move to next step
+      };
 
-    reader.readAsText(file);
+      reader.readAsText(file);
+    } else if (step === 2) {
+      // Step 2: Upload Calvert file
+      const buffer = await file.arrayBuffer();
+      const calvertParsed = await parseCalvertCSV(buffer);
+      setCalvertData(calvertParsed);
+      setStep(3); // Done
+    }
   };
 
   const handleCityTypeSelection = (type) => {
@@ -812,22 +818,316 @@ const InvoiceUploader = () => {
     await handleSummaryBreakdownDownload(map);
   };
 
+
+
+
+
+  function stringSimilarity(str1 = '', str2 = '') {
+    const a = str1.toLowerCase().trim();
+    const b = str2.toLowerCase().trim();
+    if (!a || !b) return 0;
+
+    const matrix = Array.from({ length: b.length + 1 }, (_, i) =>
+      Array.from({ length: a.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+    );
+
+    for (let i = 1; i <= b.length; i++) {
+      for (let j = 1; j <= a.length; j++) {
+        matrix[i][j] =
+          b[i - 1] === a[j - 1]
+            ? matrix[i - 1][j - 1]
+            : 1 + Math.min(matrix[i - 1][j], matrix[i][j - 1], matrix[i - 1][j - 1]);
+      }
+    }
+
+    const distance = matrix[b.length][a.length];
+    return 1 - distance / Math.max(a.length, b.length); // 1 = exact match
+  }
+
+  const normalize = (val) => (val || '').toString().trim().toLowerCase();
+  const getDate = (val) => new Date(val || '').getTime();
+
+  const getCalvertCost = (entry) => {
+    const agencyInfo = parsedData.agencyData.find(a => a.computer?.toLowerCase() === entry.Agency?.toLowerCase());
+    const mileageRate = parseFloat(agencyInfo?.mileage ?? 0);
+    const rate = parseFloat(entry.Rate ?? 0);
+    const miles = parseFloat(entry.miles ?? 0);
+    return rate + mileageRate * miles;
+  };
+
+  const sortedCalvert = [...(calvertData || [])].sort((a, b) =>
+    normalize(a.Name).localeCompare(normalize(b.Name)) ||
+    getDate(a.Date) - getDate(b.Date) ||
+    getCalvertCost(a) - getCalvertCost(b)
+  );
+
+  const getInvoiceCost = (entry) => {
+    const agencyInfo = parsedData.agencyData.find(a => a.computer?.toLowerCase() === entry.Agency?.toLowerCase());
+    const mileageRate = parseFloat(agencyInfo?.mileage ?? 0);
+    const rate = parseFloat(entry.Rate ?? 0);
+    const miles = parseFloat(entry.Miles ?? entry.miles ?? 0);
+    return rate + mileageRate * miles;
+  };
+
+  const sortedInvoice = [...(parsedData?.flattened || [])]
+    .filter((row) => row.Agency?.startsWith('Calvert'))
+    .sort((a, b) =>
+      normalize(a.Patient).localeCompare(normalize(b.Patient)) ||
+      getDate(a.Date) - getDate(b.Date) ||
+      getInvoiceCost(a) - getInvoiceCost(b)
+    );
+
+  const calvertRows = [];
+  const invoiceRows = [];
+
+  let calvertIndex = 0;
+  let invoiceIndex = 0;
+
+  while (calvertIndex < sortedCalvert.length || invoiceIndex < sortedInvoice.length) {
+    const calvert = sortedCalvert[calvertIndex];
+    const invoice = sortedInvoice[invoiceIndex];
+
+    let costCal = 0;
+    let costInv = 0;
+
+    let costMismatch = false;
+
+    if (!calvert) {
+      // Only invoice rows left
+      invoiceRows.push(
+        <tr key={`invoice-${invoiceIndex}`} className="border-t">
+          <td className="px-3 py-1">{invoice.Patient}</td>
+          <td className="px-3 py-1">{invoice.Disc}</td>
+          <td className="px-3 py-1">{invoice.Agency}</td>
+          <td className="px-3 py-1">{invoice.Date}</td>
+          <td className="px-3 py-1">{invoice.Agency.rate}</td>
+          <td className="px-3 py-1">{invoice.Miles ?? invoice.miles}</td>
+          <td className={`px-3 py-1 ${costMismatch ? 'bg-red-200 text-red-700 font-semibold' : ''}`}>
+            {invoice['Total Cost']}
+          </td>
+        </tr>
+      );
+      calvertRows.push(
+        <tr key={`missing-calvert-${invoiceIndex}`} className="bg-yellow-100 text-yellow-700 font-semibold">
+          <td colSpan={7} className="px-3 py-1">⚠ Name not found in Calvert list</td>
+        </tr>
+      );
+      invoiceIndex++;
+      continue;
+    }
+
+    const agencyInfo = parsedData.agencyData.find(a => a.computer?.toLowerCase() === calvert.Agency?.toLowerCase());
+    const mileageRate = parseFloat(agencyInfo?.mileage ?? 0);
+    const rate = parseFloat(calvert.Rate ?? 0);
+    const miles = parseFloat(calvert.miles ?? 0);
+    const cost = (rate + mileageRate * miles).toFixed(2);
+
+    if (!invoice) {
+      // Only calvert rows left
+      calvertRows.push(
+        <tr key={`calvert-${calvertIndex}`} className="border-t">
+          <td className="px-3 py-1">{calvert.Name}</td>
+          <td className="px-3 py-1">{calvert.Disc}</td>
+          <td className="px-3 py-1">{calvert.Agency}</td>
+          <td className="px-3 py-1">{calvert.Date}</td>
+          <td className="px-3 py-1">{calvert.Rate}</td>
+          <td className="px-3 py-1">{calvert.miles}</td>
+          <td className={`px-3 py-1 ${costMismatch ? 'bg-red-200 text-red-700 font-semibold' : ''}`}>
+            {cost}
+          </td>
+        </tr>
+      );
+      invoiceRows.push(
+        <tr key={`missing-invoice-${calvertIndex}`} className="bg-yellow-100 text-yellow-700 font-semibold">
+          <td colSpan={7} className="px-3 py-1">⚠ Name not found in Invoice list</td>
+        </tr>
+      );
+      calvertIndex++;
+      continue;
+    }
+
+    const stripAndCapitalizeName = (name = '') => {
+      // Remove parentheses
+      name = name.replace(/\s*\([^)]*\)/g, '');
+
+      // Remove middle name or initial after first name
+      name = name.replace(/^([^,]+,\s+\w+)\s+\w+.*$/, '$1');
+
+      // Title case each word
+      name = name
+        .toLowerCase()
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ')
+        .trim();
+
+      return name;
+    };
+
+    costMismatch = cost !== invoice['Total Cost'];
+
+    const calvertName = stripAndCapitalizeName(calvert.Name);
+    const invoiceName = stripAndCapitalizeName(invoice.Patient || invoice.Name || '');
+
+    if (calvertName < invoiceName) {
+      // Calvert name not found in invoice list
+      calvertRows.push(
+        <tr key={`calvert-${calvertIndex}`} className="border-t">
+          <td className="px-3 py-1">{calvert.Name}</td>
+          <td className="px-3 py-1">{calvert.Disc}</td>
+          <td className="px-3 py-1">{calvert.Agency}</td>
+          <td className="px-3 py-1">{calvert.Date}</td>
+          <td className="px-3 py-1">{calvert.Rate}</td>
+          <td className="px-3 py-1">{calvert.miles}</td>
+          <td className={`px-3 py-1 ${costMismatch ? 'bg-red-200 text-red-700 font-semibold' : ''}`}>
+            {cost}
+          </td>
+        </tr>
+      );
+      invoiceRows.push(
+        <tr key={`missing-invoice-${calvertIndex}`} className="bg-yellow-100 text-yellow-700 font-semibold">
+          <td colSpan={7} className="px-3 py-1">⚠ Name not found in Invoice list</td>
+        </tr>
+      );
+      calvertIndex++;
+      continue;
+    }
+
+    if (invoiceName < calvertName) {
+      // Invoice name not found in calvert list
+      invoiceRows.push(
+        <tr key={`invoice-${invoiceIndex}`} className="border-t">
+          <td className="px-3 py-1">{invoiceName}</td>
+          <td className="px-3 py-1">{invoice.Disc}</td>
+          <td className="px-3 py-1">{invoice.Agency}</td>
+          <td className="px-3 py-1">{invoice.Date}</td>
+          <td className="px-3 py-1">{invoice.Agency.rate}</td>
+          <td className="px-3 py-1">{invoice.Miles ?? invoice.miles}</td>
+          <td className={`px-3 py-1 ${costMismatch ? 'bg-red-200 text-red-700 font-semibold' : ''}`}>
+            {invoice['Total Cost']}
+          </td>
+        </tr>
+      );
+      calvertRows.push(
+        <tr key={`missing-calvert-${invoiceIndex}`} className="bg-yellow-100 text-yellow-700 font-semibold">
+          <td colSpan={7} className="px-3 py-1">⚠ Name not found in Calvert list</td>
+        </tr>
+      );
+      invoiceIndex++;
+      continue;
+    }
+
+    // Names match — now compare dates
+    const sim = stringSimilarity(calvertName, invoiceName);
+    if (sim < 0.8) {
+      // Still a mismatch even if sorted the same
+      calvertRows.push(
+        <tr key={`name-mismatch-${calvertIndex}`} className="bg-yellow-100 text-yellow-700 font-semibold">
+          <td colSpan={7} className="px-3 py-1">
+            ⚠ Name mismatch: Calvert = {calvertName}, Invoice = {invoiceName}
+          </td>
+        </tr>
+      );
+      invoiceRows.push(
+        <tr key={`invoice-${invoiceIndex}`} className="border-t">
+          <td className="px-3 py-1">{invoiceName}</td>
+          <td className="px-3 py-1">{invoice.Disc}</td>
+          <td className="px-3 py-1">{invoice.Agency}</td>
+          <td className="px-3 py-1">{invoice.Date}</td>
+          <td className="px-3 py-1">{invoice.Agency.rate}</td>
+          <td className="px-3 py-1">{invoice.Miles ?? invoice.miles}</td>
+          <td className={`px-3 py-1 ${costMismatch ? 'bg-red-200 text-red-700 font-semibold' : ''}`}>
+            {invoice['Total Cost']}
+          </td>
+        </tr>
+      );
+      invoiceIndex++;
+      continue;
+    }
+
+    // Check date
+    const calvertDate = new Date(calvert.Date).toISOString().split('T')[0];
+    const invoiceDate = invoice?.Date ? new Date(invoice.Date).toISOString().split('T')[0] : '';
+    const dateMatch = calvertDate === invoiceDate;
+
+    if (!dateMatch) {
+      invoiceRows.push(
+        <tr key={`date-mismatch-${invoiceIndex}`} className="bg-yellow-100 text-yellow-700 font-semibold">
+          <td colSpan={7} className="px-3 py-1">
+            ⚠ Date mismatch: Calvert = {calvertDate}, Invoice = {invoiceDate}
+          </td>
+        </tr>
+      );
+      calvertRows.push(
+        <tr key={`calvert-${calvertIndex}`} className="border-t">
+          <td className="px-3 py-1">{calvertName}</td>
+          <td className="px-3 py-1">{calvert.Disc}</td>
+          <td className="px-3 py-1">{calvert.Agency}</td>
+          <td className="px-3 py-1">{calvert.Date}</td>
+          <td className="px-3 py-1">{calvert.Rate}</td>
+          <td className="px-3 py-1">{calvert.miles}</td>
+          <td className={`px-3 py-1 ${costMismatch ? 'bg-red-200 text-red-700 font-semibold' : ''}`}>
+            {cost}
+          </td>
+        </tr>
+      );
+      calvertIndex++;
+      continue;
+    }
+
+    // Everything matches
+    calvertRows.push(
+      <tr key={`calvert-${calvertIndex}`} className="border-t">
+        <td className="px-3 py-1">{calvertName}</td>
+        <td className="px-3 py-1">{calvert.Disc}</td>
+        <td className="px-3 py-1">{calvert.Agency}</td>
+        <td className="px-3 py-1">{calvert.Date}</td>
+        <td className="px-3 py-1">{calvert.Rate}</td>
+        <td className="px-3 py-1">{calvert.miles}</td>
+        <td className={`px-3 py-1 ${costMismatch ? 'bg-red-200 text-red-700 font-semibold' : ''}`}>
+          {cost}
+        </td>
+      </tr>
+    );
+
+    invoiceRows.push(
+      <tr key={`invoice-${invoiceIndex}`} className="border-t">
+        <td className="px-3 py-1">{invoiceName}</td>
+        <td className="px-3 py-1">{invoice.Disc}</td>
+        <td className="px-3 py-1">{invoice.Agency}</td>
+        <td className="px-3 py-1">{invoice.Date}</td>
+        <td className="px-3 py-1">{invoice.Agency.rate}</td>
+        <td className="px-3 py-1">{invoice.Miles ?? invoice.miles}</td>
+        <td className={`px-3 py-1 ${costMismatch ? 'bg-red-200 text-red-700 font-semibold' : ''}`}>
+          {invoice['Total Cost']}
+        </td>
+      </tr>
+    );
+
+    calvertIndex++;
+    invoiceIndex++;
+  }
+
   return (
-    <div className="max-w-4xl mx-auto p-8 bg-white shadow-xl rounded-lg border border-blue-100">
+    <div className="max-w-fit min-w-full mx-auto p-8 bg-white shadow-xl rounded-lg border border-blue-100">
       <h2 className="text-3xl font-bold text-blue-900 mb-6 text-center tracking-wide">
         Upload Invoice CSV
       </h2>
 
       <input
         type="file"
-        accept=".csv"
+        accept={step === 1 ? ".csv" : ".xlsx"}
         onChange={handleFileChange}
         className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4
-                   file:rounded-md file:border-0
-                   file:text-sm file:font-semibold
-                   file:bg-sky-100 file:text-blue-900
-                   hover:file:bg-sky-200 mb-6"
+                  file:rounded-md file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-sky-100 file:text-blue-900
+                  hover:file:bg-sky-200 mb-6"
       />
+
+      <p className="text-sm text-gray-700 mb-2">
+        {step === 1 ? "Step 1: Upload Invoice CSV" : step === 2 ? "Step 2: Upload CALVERT Excel file" : "Both files uploaded."}
+      </p>
 
       {pendingCity && (
         <div className="mb-6 border border-yellow-400 p-5 rounded-md bg-yellow-50">
@@ -849,13 +1149,59 @@ const InvoiceUploader = () => {
       )}
 
       {parsedData && (
-        <div className="mt-6">
+        <div className="mt-6 flex justify-center">
           <button
             onClick={handleDownloadAll}
-            className="w-full px-6 py-4 text-white bg-blue-700 hover:bg-blue-800 rounded-lg text-base font-semibold"
+            className="max-w-4xl mx-auto w-full px-6 py-4 text-white bg-blue-700 hover:bg-blue-800 rounded-lg text-base font-semibold"
           >
-            Download All Excel Files
+            Download Biling Excel Files
           </button>
+        </div>
+      )}
+
+      {calvertData && parsedData?.flattened && (
+        <div className="mt-10 grid grid-cols-2 gap-6">
+          {/* Calvert Table */}
+          <div>
+            <h3 className="text-xl font-semibold mb-2 text-blue-900">Calvert Data</h3>
+            <div className="overflow-x-auto border border-gray-200 rounded">
+              <table className="min-w-full text-sm text-left text-gray-700">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="px-3 py-2">Name</th>
+                    <th className="px-3 py-2">Disc</th>
+                    <th className="px-3 py-2">Agency</th>
+                    <th className="px-3 py-2">Date</th>
+                    <th className="px-3 py-2">Rate</th>
+                    <th className="px-3 py-2">Miles</th>
+                    <th className="px-3 py-2">Cost</th>
+                  </tr>
+                </thead>
+                <tbody>{calvertRows}</tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Invoice Data Table */}
+          <div>
+            <h3 className="text-xl font-semibold mb-2 text-blue-900">Invoice Data</h3>
+            <div className="overflow-x-auto border border-gray-200 rounded">
+              <table className="min-w-full text-sm text-left text-gray-700">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="px-3 py-2">Name</th>
+                    <th className="px-3 py-2">Disc</th>
+                    <th className="px-3 py-2">Agency</th>
+                    <th className="px-3 py-2">Date</th>
+                    <th className="px-3 py-2">Rate</th>
+                    <th className="px-3 py-2">Miles</th>
+                    <th className="px-3 py-2">Cost</th>
+                  </tr>
+                </thead>
+                <tbody>{invoiceRows}</tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
     </div>
