@@ -15,6 +15,8 @@ const InvoiceUploader = () => {
   const [cityPromptResolve, setCityPromptResolve] = useState(null);
   const [step, setStep] = useState(1);
   const [calvertData, setCalvertData] = useState(null);
+  const [showBillingPrompt, setShowBillingPrompt] = useState(false);
+  const [isBilling, setIsBilling] = useState(null);
   
   function columnLetterToNumber(letter) {
       let col = 0;
@@ -62,6 +64,7 @@ const InvoiceUploader = () => {
     if (!file) return;
 
     if (step === 1) {
+      setShowBillingPrompt(true);
       // Step 1: Upload CSV
       const [citiesRes, agencyRes] = await Promise.all([
         fetch(`${API_BASE}/cities`),
@@ -108,6 +111,20 @@ const InvoiceUploader = () => {
   };
 
   const assignInvoiceNumbers = async () => {
+    if (!isBilling) {
+      // Return dummy values if billing is not being done
+      const agencies = Object.keys(parsedData.matrix || parsedData.summary || {});
+      const dummyMap = {};
+      let dummyInvoice = 999999; // some placeholder number
+
+      for (const agency of agencies) {
+        dummyMap[agency] = dummyInvoice++;
+      }
+
+      return dummyMap;
+    }
+
+    // Billing is true — proceed with real database access
     const res = await fetch(`${API_BASE}/invoicenumber`);
     const json = await res.json();
     const { invoiceNumber: currentInvoiceRaw } = json;
@@ -896,20 +913,20 @@ const InvoiceUploader = () => {
       // Only invoice rows left
       invoiceRows.push(
         <tr key={`invoice-${invoiceIndex}`} className="border-t">
-          <td className="px-3 py-1">{invoice.Patient}</td>
-          <td className="px-3 py-1">{invoice.Disc}</td>
-          <td className="px-3 py-1">{invoice.Agency}</td>
-          <td className="px-3 py-1">{invoice.Date}</td>
-          <td className="px-3 py-1">{invoice.Agency.rate}</td>
-          <td className="px-3 py-1">{invoice.Miles ?? invoice.miles}</td>
-          <td className={`px-3 py-1 ${costMismatch ? 'bg-red-200 text-red-700 font-semibold' : ''}`}>
+          <td className="px-3 h-8">{invoice.Patient}</td>
+          <td className="px-3 h-8">{invoice.Disc}</td>
+          <td className="px-3 h-8">{invoice.Agency}</td>
+          <td className="px-3 h-8">{invoice.Date}</td>
+          <td className="px-3 h-8">{invoice['Base Rate']}</td>
+          <td className="px-3 h-8">{invoice.Miles ?? invoice.miles}</td>
+          <td className={`px-3 h-8 ${true ? 'bg-red-200 text-red-700 font-semibold' : ''}`}>
             {invoice['Total Cost']}
           </td>
         </tr>
       );
       calvertRows.push(
         <tr key={`missing-calvert-${invoiceIndex}`} className="bg-yellow-100 text-yellow-700 font-semibold">
-          <td colSpan={7} className="px-3 py-1">⚠ Name not found in Calvert list</td>
+          <td colSpan={7} className="px-3 h-8">⚠ Name not found in Calvert list</td>
         </tr>
       );
       invoiceIndex++;
@@ -926,20 +943,20 @@ const InvoiceUploader = () => {
       // Only calvert rows left
       calvertRows.push(
         <tr key={`calvert-${calvertIndex}`} className="border-t">
-          <td className="px-3 py-1">{calvert.Name}</td>
-          <td className="px-3 py-1">{calvert.Disc}</td>
-          <td className="px-3 py-1">{calvert.Agency}</td>
-          <td className="px-3 py-1">{calvert.Date}</td>
-          <td className="px-3 py-1">{calvert.Rate}</td>
-          <td className="px-3 py-1">{calvert.miles}</td>
-          <td className={`px-3 py-1 ${costMismatch ? 'bg-red-200 text-red-700 font-semibold' : ''}`}>
+          <td className="px-3 h-8">{calvert.Name}</td>
+          <td className="px-3 h-8">{calvert.Disc}</td>
+          <td className="px-3 h-8">{calvert.Agency}</td>
+          <td className="px-3 h-8">{calvert.Date}</td>
+          <td className="px-3 h-8">{calvert.Rate}</td>
+          <td className="px-3 h-8">{calvert.miles}</td>
+          <td className={`px-3 h-8 ${true ? 'bg-red-200 text-red-700 font-semibold' : ''}`}>
             {cost}
           </td>
         </tr>
       );
       invoiceRows.push(
         <tr key={`missing-invoice-${calvertIndex}`} className="bg-yellow-100 text-yellow-700 font-semibold">
-          <td colSpan={7} className="px-3 py-1">⚠ Name not found in Invoice list</td>
+          <td colSpan={7} className="px-3 h-8">⚠ Name not found in Invoice list</td>
         </tr>
       );
       calvertIndex++;
@@ -973,20 +990,20 @@ const InvoiceUploader = () => {
       // Calvert name not found in invoice list
       calvertRows.push(
         <tr key={`calvert-${calvertIndex}`} className="border-t">
-          <td className="px-3 py-1">{calvert.Name}</td>
-          <td className="px-3 py-1">{calvert.Disc}</td>
-          <td className="px-3 py-1">{calvert.Agency}</td>
-          <td className="px-3 py-1">{calvert.Date}</td>
-          <td className="px-3 py-1">{calvert.Rate}</td>
-          <td className="px-3 py-1">{calvert.miles}</td>
-          <td className={`px-3 py-1 ${costMismatch ? 'bg-red-200 text-red-700 font-semibold' : ''}`}>
+          <td className="px-3 h-8">{calvert.Name}</td>
+          <td className="px-3 h-8">{calvert.Disc}</td>
+          <td className="px-3 h-8">{calvert.Agency}</td>
+          <td className="px-3 h-8">{calvert.Date}</td>
+          <td className="px-3 h-8">{calvert.Rate}</td>
+          <td className="px-3 h-8">{calvert.miles}</td>
+          <td className={`px-3 h-8 ${true ? 'bg-red-200 text-red-700 font-semibold' : ''}`}>
             {cost}
           </td>
         </tr>
       );
       invoiceRows.push(
         <tr key={`missing-invoice-${calvertIndex}`} className="bg-yellow-100 text-yellow-700 font-semibold">
-          <td colSpan={7} className="px-3 py-1">⚠ Name not found in Invoice list</td>
+          <td colSpan={7} className="px-3 h-8">⚠ Name not found in Invoice list</td>
         </tr>
       );
       calvertIndex++;
@@ -997,20 +1014,20 @@ const InvoiceUploader = () => {
       // Invoice name not found in calvert list
       invoiceRows.push(
         <tr key={`invoice-${invoiceIndex}`} className="border-t">
-          <td className="px-3 py-1">{invoiceName}</td>
-          <td className="px-3 py-1">{invoice.Disc}</td>
-          <td className="px-3 py-1">{invoice.Agency}</td>
-          <td className="px-3 py-1">{invoice.Date}</td>
-          <td className="px-3 py-1">{invoice.Agency.rate}</td>
-          <td className="px-3 py-1">{invoice.Miles ?? invoice.miles}</td>
-          <td className={`px-3 py-1 ${costMismatch ? 'bg-red-200 text-red-700 font-semibold' : ''}`}>
+          <td className="px-3 h-8">{invoiceName}</td>
+          <td className="px-3 h-8">{invoice.Disc}</td>
+          <td className="px-3 h-8">{invoice.Agency}</td>
+          <td className="px-3 h-8">{invoice.Date}</td>
+          <td className="px-3 h-8">{invoice['Base Rate']}</td>
+          <td className="px-3 h-8">{invoice.Miles ?? invoice.miles}</td>
+          <td className={`px-3 h-8 ${true ? 'bg-red-200 text-red-700 font-semibold' : ''}`}>
             {invoice['Total Cost']}
           </td>
         </tr>
       );
       calvertRows.push(
         <tr key={`missing-calvert-${invoiceIndex}`} className="bg-yellow-100 text-yellow-700 font-semibold">
-          <td colSpan={7} className="px-3 py-1">⚠ Name not found in Calvert list</td>
+          <td colSpan={7} className="px-3 h-8">⚠ Name not found in Calvert list</td>
         </tr>
       );
       invoiceIndex++;
@@ -1023,20 +1040,20 @@ const InvoiceUploader = () => {
       // Still a mismatch even if sorted the same
       calvertRows.push(
         <tr key={`name-mismatch-${calvertIndex}`} className="bg-yellow-100 text-yellow-700 font-semibold">
-          <td colSpan={7} className="px-3 py-1">
+          <td colSpan={7} className="px-3 h-8">
             ⚠ Name mismatch: Calvert = {calvertName}, Invoice = {invoiceName}
           </td>
         </tr>
       );
       invoiceRows.push(
         <tr key={`invoice-${invoiceIndex}`} className="border-t">
-          <td className="px-3 py-1">{invoiceName}</td>
-          <td className="px-3 py-1">{invoice.Disc}</td>
-          <td className="px-3 py-1">{invoice.Agency}</td>
-          <td className="px-3 py-1">{invoice.Date}</td>
-          <td className="px-3 py-1">{invoice.Agency.rate}</td>
-          <td className="px-3 py-1">{invoice.Miles ?? invoice.miles}</td>
-          <td className={`px-3 py-1 ${costMismatch ? 'bg-red-200 text-red-700 font-semibold' : ''}`}>
+          <td className="px-3 h-8">{invoiceName}</td>
+          <td className="px-3 h-8">{invoice.Disc}</td>
+          <td className="px-3 h-8">{invoice.Agency}</td>
+          <td className="px-3 h-8">{invoice.Date}</td>
+          <td className="px-3 h-8">{invoice['Base Rate']}</td>
+          <td className="px-3 h-8">{invoice.Miles ?? invoice.miles}</td>
+          <td className={`px-3 h-8 ${costMismatch ? 'bg-red-200 text-red-700 font-semibold' : ''}`}>
             {invoice['Total Cost']}
           </td>
         </tr>
@@ -1053,20 +1070,20 @@ const InvoiceUploader = () => {
     if (!dateMatch) {
       invoiceRows.push(
         <tr key={`date-mismatch-${invoiceIndex}`} className="bg-yellow-100 text-yellow-700 font-semibold">
-          <td colSpan={7} className="px-3 py-1">
+          <td colSpan={7} className="px-3 h-8">
             ⚠ Date mismatch: Calvert = {calvertDate}, Invoice = {invoiceDate}
           </td>
         </tr>
       );
       calvertRows.push(
         <tr key={`calvert-${calvertIndex}`} className="border-t">
-          <td className="px-3 py-1">{calvertName}</td>
-          <td className="px-3 py-1">{calvert.Disc}</td>
-          <td className="px-3 py-1">{calvert.Agency}</td>
-          <td className="px-3 py-1">{calvert.Date}</td>
-          <td className="px-3 py-1">{calvert.Rate}</td>
-          <td className="px-3 py-1">{calvert.miles}</td>
-          <td className={`px-3 py-1 ${costMismatch ? 'bg-red-200 text-red-700 font-semibold' : ''}`}>
+          <td className="px-3 h-8">{calvertName}</td>
+          <td className="px-3 h-8">{calvert.Disc}</td>
+          <td className="px-3 h-8">{calvert.Agency}</td>
+          <td className="px-3 h-8">{calvert.Date}</td>
+          <td className="px-3 h-8">{calvert.Rate}</td>
+          <td className="px-3 h-8">{calvert.miles}</td>
+          <td className={`px-3 h-8 ${true ? 'bg-red-200 text-red-700 font-semibold' : ''}`}>
             {cost}
           </td>
         </tr>
@@ -1078,13 +1095,13 @@ const InvoiceUploader = () => {
     // Everything matches
     calvertRows.push(
       <tr key={`calvert-${calvertIndex}`} className="border-t">
-        <td className="px-3 py-1">{calvertName}</td>
-        <td className="px-3 py-1">{calvert.Disc}</td>
-        <td className="px-3 py-1">{calvert.Agency}</td>
-        <td className="px-3 py-1">{calvert.Date}</td>
-        <td className="px-3 py-1">{calvert.Rate}</td>
-        <td className="px-3 py-1">{calvert.miles}</td>
-        <td className={`px-3 py-1 ${costMismatch ? 'bg-red-200 text-red-700 font-semibold' : ''}`}>
+        <td className="px-3 h-8">{calvertName}</td>
+        <td className="px-3 h-8">{calvert.Disc}</td>
+        <td className="px-3 h-8">{calvert.Agency}</td>
+        <td className="px-3 h-8">{calvert.Date}</td>
+        <td className="px-3 h-8">{calvert.Rate}</td>
+        <td className="px-3 h-8">{calvert.miles}</td>
+        <td className={`px-3 h-8 ${costMismatch ? 'bg-red-200 text-red-700 font-semibold' : ''}`}>
           {cost}
         </td>
       </tr>
@@ -1092,13 +1109,13 @@ const InvoiceUploader = () => {
 
     invoiceRows.push(
       <tr key={`invoice-${invoiceIndex}`} className="border-t">
-        <td className="px-3 py-1">{invoiceName}</td>
-        <td className="px-3 py-1">{invoice.Disc}</td>
-        <td className="px-3 py-1">{invoice.Agency}</td>
-        <td className="px-3 py-1">{invoice.Date}</td>
-        <td className="px-3 py-1">{invoice.Agency.rate}</td>
-        <td className="px-3 py-1">{invoice.Miles ?? invoice.miles}</td>
-        <td className={`px-3 py-1 ${costMismatch ? 'bg-red-200 text-red-700 font-semibold' : ''}`}>
+        <td className="px-3 h-8">{invoiceName}</td>
+        <td className="px-3 h-8">{invoice.Disc}</td>
+        <td className="px-3 h-8">{invoice.Agency}</td>
+        <td className="px-3 h-8">{invoice.Date}</td>
+        <td className="px-3 h-8">{invoice['Base Rate']}</td>
+        <td className="px-3 h-8">{invoice.Miles ?? invoice.miles}</td>
+        <td className={`px-3 h-8 ${costMismatch ? 'bg-red-200 text-red-700 font-semibold' : ''}`}>
           {invoice['Total Cost']}
         </td>
       </tr>
@@ -1200,6 +1217,38 @@ const InvoiceUploader = () => {
                 </thead>
                 <tbody>{invoiceRows}</tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showBillingPrompt && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded shadow max-w-64">
+            <p className="mb-2 text-lg font-extrabold text-blue-900">Are you doing billing?</p>
+            <hr className="mb-3 border-t-2 border-blue-200" />
+            <p className="mb-12 text-sm text-gray-700">
+              Selecting <strong className="text-blue-900">Yes</strong> will update the invoice number in the database.
+            </p>
+            <div className="flex gap-4 justify-center">
+              <button
+                className="bg-blue-200 text-blue-900 font-medium px-4 py-2 rounded"
+                onClick={() => {
+                  setIsBilling(true);
+                  setShowBillingPrompt(false);
+                }}
+              >
+                Yes
+              </button>
+              <button
+                className="bg-gray-400 text-white px-4 py-2 rounded"
+                onClick={() => {
+                  setIsBilling(false);
+                  setShowBillingPrompt(false);
+                }}
+              >
+                No
+              </button>
             </div>
           </div>
         </div>
