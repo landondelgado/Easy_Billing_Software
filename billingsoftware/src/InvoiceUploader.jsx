@@ -1128,7 +1128,7 @@ const InvoiceUploader = () => {
   return (
     <div className="max-w-fit min-w-full mx-auto p-8 bg-white shadow-xl rounded-lg border border-blue-100">
       <h2 className="text-3xl font-bold text-blue-900 mb-6 text-center tracking-wide">
-        Upload Invoice CSV
+        Upload Invoice File
       </h2>
 
       <input
@@ -1143,7 +1143,7 @@ const InvoiceUploader = () => {
       />
 
       <p className="text-sm text-gray-700 mb-2">
-        {step === 1 ? "Step 1: Upload Invoice CSV" : step === 2 ? "Step 2: Upload CALVERT Excel file" : "Both files uploaded."}
+        {step === 1 ? "Step 1: Upload Invoice File" : step === 2 ? "Step 2: Upload Calvert Excel file" : "Both files uploaded."}
       </p>
 
       {pendingCity && (
@@ -1224,8 +1224,8 @@ const InvoiceUploader = () => {
 
       {showBillingPrompt && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded shadow max-w-64">
-            <p className="mb-2 text-lg font-extrabold text-blue-900">Are you doing billing?</p>
+          <div className="bg-white p-8 rounded shadow max-w-72">
+            <p className="mb-2 text-lg font-bold text-blue-900">Are you doing billing?</p>
             <hr className="mb-3 border-t-2 border-blue-200" />
             <p className="mb-12 text-sm text-gray-700">
               Selecting <strong className="text-blue-900">Yes</strong> will update the invoice number in the database.
