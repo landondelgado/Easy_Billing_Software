@@ -156,6 +156,7 @@ export async function parseInvoiceCSV(csvText, citiesData, agencyData, promptFor
       let groupKey = visitGroup?.replace(/[-\s]/g, '_');
       if (groupKey?.toUpperCase() === 'DISCHARGE') groupKey = 'DC';
 
+      console.log("citiesData:", citiesData, Array.isArray(citiesData));
       let cityMatch = citiesData.find(c => c.name?.toLowerCase().trim() === City?.toLowerCase().trim());
       let cityType = 'In Town';
 

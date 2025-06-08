@@ -1,7 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
+import LoginPage from './LoginPage'
 import Billing from './Billing';
 
 function App() {
+  const [user, setUser] = useState(null);
+
+  if (!user) {
+    return <LoginPage onLogin={setUser} />;
+  }
+
   return (
     <div className="App">
       <header className="relative flex items-center justify-between p-4 pl-8 pr-8 bg-gray-900 text-white shadow-md">
@@ -17,13 +24,21 @@ function App() {
 
         {/* Center: Absolutely centered nav */}
         <nav className="absolute left-1/2 transform -translate-x-1/2 space-x-6">
-          <button className="text-xl tracking-wide hover:text-blue-400 transition">Billing</button>
-          <button className="text-xl tracking-wide hover:text-blue-400 transition">Agencies</button>
+          <button className="text-xl tracking-wide border-b-2 px-3 pb-1 rounded-md hover:text-blue-400 hover:border-blue-400 hover:text-2xl hover:px-4 transition-all duration-200">Billing</button>
+          <button className="text-xl tracking-wide border-b-2 px-3 pb-1 rounded-md hover:text-blue-400 hover:border-blue-400 hover:text-2xl hover:px-4 transition-all duration-200">Agencies</button>
         </nav>
 
         {/* Right: Sign Out */}
         <div className="z-10 pr-10">
-          <button className="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded transition">
+          <button
+            className="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded transition"
+            onClick={() => {
+              if (window.google && window.google.accounts?.id) {
+                window.google.accounts.id.disableAutoSelect();
+              }
+              setUser(null);
+            }}
+          >
             Sign Out
           </button>
         </div>

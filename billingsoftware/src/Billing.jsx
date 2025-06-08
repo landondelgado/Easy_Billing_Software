@@ -17,6 +17,8 @@ const Billing = () => {
   const [calvertData, setCalvertData] = useState(null);
   const [showBillingPrompt, setShowBillingPrompt] = useState(false);
   const [isBilling, setIsBilling] = useState(null);
+
+  const token = localStorage.getItem('id_token');
   
   function columnLetterToNumber(letter) {
       let col = 0;
@@ -67,8 +69,16 @@ const Billing = () => {
       setShowBillingPrompt(true);
       // Step 1: Upload CSV
       const [citiesRes, agencyRes] = await Promise.all([
-        fetch(`${API_BASE}/cities`),
-        fetch(`${API_BASE}/agencydata`)
+        fetch(`${API_BASE}/cities`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }),
+        fetch(`${API_BASE}/agencydata`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }),
       ]);
 
       const citiesData = await citiesRes.json();
@@ -125,7 +135,11 @@ const Billing = () => {
     }
 
     // Billing is true — proceed with real database access
-    const res = await fetch(`${API_BASE}/invoicenumber`);
+    const res = await fetch(`${API_BASE}/invoicenumber`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
     const json = await res.json();
     const { invoiceNumber: currentInvoiceRaw } = json;
 
@@ -144,8 +158,11 @@ const Billing = () => {
 
     await fetch(`${API_BASE}/invoicenumber`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ invoiceNumber: currentInvoice })
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ invoiceNumber: currentInvoice }),
     });
 
     return map;
@@ -249,7 +266,13 @@ const Billing = () => {
 
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    saveAs(blob, 'AgencySummary.xlsx');
+    const minDate = new Date(parsedData.payPeriod.start);
+    const maxDate = new Date(parsedData.payPeriod.end);
+
+    const startStr = `${String(minDate.getMonth() + 1).padStart(2, '0')}-${String(minDate.getDate()).padStart(2, '0')}`;
+    const endStr = `${String(maxDate.getMonth() + 1).padStart(2, '0')}-${String(maxDate.getDate()).padStart(2, '0')}`;
+
+    saveAs(blob, `AgencySummary ${startStr} ${endStr}.xlsx`);
   };
 
   const handleMatrixDownload = async (map) => {
@@ -271,15 +294,15 @@ const Billing = () => {
     const imageBase64 = await loadHeaderImageBase64();
     const imageId = workbook.addImage({ base64: imageBase64, extension: 'png' });
 
+    const minDate = new Date(parsedData.payPeriod.start);
+    const maxDate = new Date(parsedData.payPeriod.end);
+
     for (const [agency, records] of Object.entries(parsedData.matrix)) {
         const worksheet = workbook.addWorksheet(agency.substring(0, 31));
         worksheet.pageSetup = {
             orientation: 'landscape',
             margins: { left: 0.25, right: 0.15, top: 0.17, bottom: 0.2, header: 0.5, footer: 0.5 }
         };
-
-        const minDate = new Date(parsedData.payPeriod.start);
-        const maxDate = new Date(parsedData.payPeriod.end);
 
         const sortedDates = [];
         let current = new Date(minDate);
@@ -523,7 +546,11 @@ const Billing = () => {
 
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      saveAs(blob, 'AgencyDetail.xlsx');
+
+      const startStr = `${String(minDate.getMonth() + 1).padStart(2, '0')}-${String(minDate.getDate()).padStart(2, '0')}`;
+      const endStr = `${String(maxDate.getMonth() + 1).padStart(2, '0')}-${String(maxDate.getDate()).padStart(2, '0')}`;
+
+      saveAs(blob, `AgencyDetail ${startStr} ${endStr}.xlsx`);
   };
 
 
@@ -823,7 +850,14 @@ const Billing = () => {
 
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-      saveAs(blob, "AgencyInvoice.xlsx");
+
+      const minDate = new Date(parsedData.payPeriod.start);
+      const maxDate = new Date(parsedData.payPeriod.end);
+
+      const startStr = `${String(minDate.getMonth() + 1).padStart(2, '0')}-${String(minDate.getDate()).padStart(2, '0')}`;
+      const endStr = `${String(maxDate.getMonth() + 1).padStart(2, '0')}-${String(maxDate.getDate()).padStart(2, '0')}`;
+
+      saveAs(blob, `AgencyInvoice ${startStr} ${endStr}.xlsx`);
   };
 
   const handleDownloadAll = async () => {
@@ -912,7 +946,7 @@ const Billing = () => {
     if (!calvert) {
       // Only invoice rows left
       invoiceRows.push(
-        <tr key={`invoice-${invoiceIndex}`} className="border-t">
+        <tr key={`invoice-${invoiceIndex}`} className="border-t animate-fadeInSlideLeft" style={{ animationDelay: `${calvertIndex * 30}ms` }}>
           <td className="px-3 h-8">{invoice.Patient}</td>
           <td className="px-3 h-8">{invoice.Disc}</td>
           <td className="px-3 h-8">{invoice.Agency}</td>
@@ -925,7 +959,7 @@ const Billing = () => {
         </tr>
       );
       calvertRows.push(
-        <tr key={`missing-calvert-${invoiceIndex}`} className="bg-yellow-100 text-yellow-700 font-semibold">
+        <tr key={`missing-calvert-${invoiceIndex}`} className="bg-yellow-100 text-yellow-700 font-semibold animate-fadeInSlideRight" style={{ animationDelay: `${calvertIndex * 15}ms` }}>
           <td colSpan={7} className="px-3 h-8">⚠ Name not found in Calvert list</td>
         </tr>
       );
@@ -942,7 +976,7 @@ const Billing = () => {
     if (!invoice) {
       // Only calvert rows left
       calvertRows.push(
-        <tr key={`calvert-${calvertIndex}`} className="border-t">
+        <tr key={`calvert-${calvertIndex}`} className="border-t animate-fadeInSlideRight" style={{ animationDelay: `${calvertIndex * 15}ms` }}>
           <td className="px-3 h-8">{calvert.Name}</td>
           <td className="px-3 h-8">{calvert.Disc}</td>
           <td className="px-3 h-8">{calvert.Agency}</td>
@@ -955,7 +989,7 @@ const Billing = () => {
         </tr>
       );
       invoiceRows.push(
-        <tr key={`missing-invoice-${calvertIndex}`} className="bg-yellow-100 text-yellow-700 font-semibold">
+        <tr key={`missing-invoice-${calvertIndex}`} className="bg-yellow-100 text-yellow-700 font-semibold animate-fadeInSlideLeft" style={{ animationDelay: `${calvertIndex * 15}ms` }}>
           <td colSpan={7} className="px-3 h-8">⚠ Name not found in Invoice list</td>
         </tr>
       );
@@ -989,7 +1023,7 @@ const Billing = () => {
     if (calvertName < invoiceName) {
       // Calvert name not found in invoice list
       calvertRows.push(
-        <tr key={`calvert-${calvertIndex}`} className="border-t">
+        <tr key={`calvert-${calvertIndex}`} className="border-t animate-fadeInSlideRight" style={{ animationDelay: `${calvertIndex * 15}ms` }}>
           <td className="px-3 h-8">{calvert.Name}</td>
           <td className="px-3 h-8">{calvert.Disc}</td>
           <td className="px-3 h-8">{calvert.Agency}</td>
@@ -1002,7 +1036,7 @@ const Billing = () => {
         </tr>
       );
       invoiceRows.push(
-        <tr key={`missing-invoice-${calvertIndex}`} className="bg-yellow-100 text-yellow-700 font-semibold">
+        <tr key={`missing-invoice-${calvertIndex}`} className="bg-yellow-100 text-yellow-700 font-semibold animate-fadeInSlideLeft" style={{ animationDelay: `${calvertIndex * 15}ms` }}>
           <td colSpan={7} className="px-3 h-8">⚠ Name not found in Invoice list</td>
         </tr>
       );
@@ -1013,7 +1047,7 @@ const Billing = () => {
     if (invoiceName < calvertName) {
       // Invoice name not found in calvert list
       invoiceRows.push(
-        <tr key={`invoice-${invoiceIndex}`} className="border-t">
+        <tr key={`invoice-${invoiceIndex}`} className="border-t animate-fadeInSlideLeft" style={{ animationDelay: `${calvertIndex * 15}ms` }}>
           <td className="px-3 h-8">{invoiceName}</td>
           <td className="px-3 h-8">{invoice.Disc}</td>
           <td className="px-3 h-8">{invoice.Agency}</td>
@@ -1026,7 +1060,7 @@ const Billing = () => {
         </tr>
       );
       calvertRows.push(
-        <tr key={`missing-calvert-${invoiceIndex}`} className="bg-yellow-100 text-yellow-700 font-semibold">
+        <tr key={`missing-calvert-${invoiceIndex}`} className="bg-yellow-100 text-yellow-700 font-semibold animate-fadeInSlideRight" style={{ animationDelay: `${calvertIndex * 15}ms` }}>
           <td colSpan={7} className="px-3 h-8">⚠ Name not found in Calvert list</td>
         </tr>
       );
@@ -1039,14 +1073,14 @@ const Billing = () => {
     if (sim < 0.8) {
       // Still a mismatch even if sorted the same
       calvertRows.push(
-        <tr key={`name-mismatch-${calvertIndex}`} className="bg-yellow-100 text-yellow-700 font-semibold">
+        <tr key={`name-mismatch-${calvertIndex}`} className="bg-yellow-100 text-yellow-700 font-semibold animate-fadeInSlideRight" style={{ animationDelay: `${calvertIndex * 15}ms` }}>
           <td colSpan={7} className="px-3 h-8">
             ⚠ Name mismatch: Calvert = {calvertName}, Invoice = {invoiceName}
           </td>
         </tr>
       );
       invoiceRows.push(
-        <tr key={`invoice-${invoiceIndex}`} className="border-t">
+        <tr key={`invoice-${invoiceIndex}`} className="border-t animate-fadeInSlideLeft" style={{ animationDelay: `${calvertIndex * 15}ms` }}>
           <td className="px-3 h-8">{invoiceName}</td>
           <td className="px-3 h-8">{invoice.Disc}</td>
           <td className="px-3 h-8">{invoice.Agency}</td>
@@ -1069,14 +1103,14 @@ const Billing = () => {
 
     if (!dateMatch) {
       invoiceRows.push(
-        <tr key={`date-mismatch-${invoiceIndex}`} className="bg-yellow-100 text-yellow-700 font-semibold">
+        <tr key={`date-mismatch-${invoiceIndex}`} className="bg-yellow-100 text-yellow-700 font-semibold animate-fadeInSlideRight" style={{ animationDelay: `${calvertIndex * 15}ms`}}>
           <td colSpan={7} className="px-3 h-8">
             ⚠ Date mismatch: Calvert = {calvertDate}, Invoice = {invoiceDate}
           </td>
         </tr>
       );
       calvertRows.push(
-        <tr key={`calvert-${calvertIndex}`} className="border-t">
+        <tr key={`calvert-${calvertIndex}`} className="border-t animate-fadeInSlideLeft" style={{ animationDelay: `${calvertIndex * 15}ms` }}>
           <td className="px-3 h-8">{calvertName}</td>
           <td className="px-3 h-8">{calvert.Disc}</td>
           <td className="px-3 h-8">{calvert.Agency}</td>
@@ -1094,7 +1128,7 @@ const Billing = () => {
 
     // Everything matches
     calvertRows.push(
-      <tr key={`calvert-${calvertIndex}`} className="border-t">
+      <tr key={`calvert-${calvertIndex}`} className="border-t animate-fadeInSlideRight" style={{ animationDelay: `${calvertIndex * 15}ms` }}>
         <td className="px-3 h-8">{calvertName}</td>
         <td className="px-3 h-8">{calvert.Disc}</td>
         <td className="px-3 h-8">{calvert.Agency}</td>
@@ -1108,7 +1142,7 @@ const Billing = () => {
     );
 
     invoiceRows.push(
-      <tr key={`invoice-${invoiceIndex}`} className="border-t">
+      <tr key={`invoice-${invoiceIndex}`} className="border-t animate-fadeInSlideLeft" style={{ animationDelay: `${calvertIndex * 15}ms` }}>
         <td className="px-3 h-8">{invoiceName}</td>
         <td className="px-3 h-8">{invoice.Disc}</td>
         <td className="px-3 h-8">{invoice.Agency}</td>
@@ -1166,7 +1200,7 @@ const Billing = () => {
       )}
 
       {parsedData && (
-        <div className="mt-6 flex justify-center">
+        <div className="mt-6 pb-6 flex justify-center border-b-2">
           <button
             onClick={handleDownloadAll}
             className="max-w-4xl mx-auto w-full px-6 py-4 text-xl text-white tracking-wider bg-blue-700 hover:bg-blue-800 rounded-lg font-semibold"
@@ -1180,11 +1214,11 @@ const Billing = () => {
         <div className="mt-10 grid grid-cols-2 gap-6">
           {/* Calvert Table */}
           <div>
-            <h3 className="text-xl font-semibold mb-2 text-blue-900">Calvert Data</h3>
+            <h3 className="text-xl text-center font-semibold mb-2 text-blue-900 animate-fadeInSlideRight border-b-2 pb-2" style={{ animationDelay: `1000ms` }}>Calvert Data</h3>
             <div className="overflow-x-auto border border-gray-200 rounded">
               <table className="min-w-full text-sm text-left text-gray-700">
                 <thead className="bg-gray-100">
-                  <tr>
+                  <tr className="animate-fadeInSlideRight" style={{ animationDelay: `1000ms` }}>
                     <th className="px-3 py-2">Name</th>
                     <th className="px-3 py-2">Disc</th>
                     <th className="px-3 py-2">Agency</th>
@@ -1201,11 +1235,11 @@ const Billing = () => {
 
           {/* Invoice Data Table */}
           <div>
-            <h3 className="text-xl font-semibold mb-2 text-blue-900">Invoice Data</h3>
+            <h3 className="text-xl text-center font-semibold mb-2 text-blue-900 animate-fadeInSlideLeft border-b-2 pb-2" style={{ animationDelay: `1000ms` }}>Invoice Data</h3>
             <div className="overflow-x-auto border border-gray-200 rounded">
               <table className="min-w-full text-sm text-left text-gray-700">
                 <thead className="bg-gray-100">
-                  <tr>
+                  <tr className="animate-fadeInSlideLeft" style={{ animationDelay: `1000ms` }}>
                     <th className="px-3 py-2">Name</th>
                     <th className="px-3 py-2">Disc</th>
                     <th className="px-3 py-2">Agency</th>

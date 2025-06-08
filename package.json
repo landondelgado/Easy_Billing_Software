@@ -1,6 +1,6 @@
 {
   "name": "easy_billing_software",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "scripts": {
     "start": "node start.js",
     "billingsoftware": "npm start --prefix billingsoftware",
@@ -12,6 +12,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
+    "google-auth-library": "^9.15.1",
     "pg": "^8.16.0"
   },
   "devDependencies": {
