@@ -1,3 +1,119 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+body {
+  font-family: 'Urfa', sans-serif;
+}
+
+@font-face {
+  font-family: 'Urfa';
+  src: url('./assets/fonts/urfa/Urfa-Black.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Urfa';
+  src: url('./assets/fonts/urfa/Urfa-Black-Italic.woff2') format('woff2');
+  font-weight: 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Urfa';
+  src: url('./assets/fonts/urfa/Urfa-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Urfa';
+  src: url('./assets/fonts/urfa/Urfa-Bold-Italic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Urfa';
+  src: url('./assets/fonts/urfa/Urfa-Book.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Urfa';
+  src: url('./assets/fonts/urfa/Urfa-Book-Italic.woff2') format('woff2');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Urfa';
+  src: url('./assets/fonts/urfa/Urfa-Heavy.woff2') format('woff2');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Urfa';
+  src: url('./assets/fonts/urfa/Urfa-Heavy-Italic.woff2') format('woff2');
+  font-weight: 800;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Urfa';
+  src: url('./assets/fonts/urfa/Urfa-Light-Italic.woff2') format('woff2');
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Urfa';
+  src: url('./assets/fonts/urfa/Urfa-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Urfa';
+  src: url('./assets/fonts/urfa/Urfa-Regular-Italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Urfa';
+  src: url('./assets/fonts/urfa/Urfa-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Urfa';
+  src: url('./assets/fonts/urfa/Urfa-Thin.woff2') format('woff2');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Urfa';
+  src: url('./assets/fonts/urfa/Urfa-Thin-Italic.woff2') format('woff2');
+  font-weight: 100;
+  font-style: italic;
+  font-display: swap;
+}

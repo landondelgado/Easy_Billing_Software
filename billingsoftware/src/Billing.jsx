@@ -1,4 +1,4 @@
-// InvoiceUploader.jsx
+// Billing.jsx
 import React, { useState } from 'react';
 import { parseInvoiceCSV, parseCalvertCSV } from './parseInvoiceData';
 import { saveAs } from 'file-saver';
@@ -9,7 +9,7 @@ const API_BASE = //connect frontend to backend
     ? 'http://localhost:5000'
     : '';
 
-const InvoiceUploader = () => {
+const Billing = () => {
   const [parsedData, setParsedData] = useState(null);
   const [pendingCity, setPendingCity] = useState(null);
   const [cityPromptResolve, setCityPromptResolve] = useState(null);
@@ -1127,7 +1127,7 @@ const InvoiceUploader = () => {
 
   return (
     <div className="max-w-fit min-w-full mx-auto p-8 bg-white shadow-xl rounded-lg border border-blue-100">
-      <h2 className="text-3xl font-bold text-blue-900 mb-6 text-center tracking-wide">
+      <h2 className="text-3xl font-bold text-blue-900 mb-6 text-center tracking-wide pb-8 border-b-2">
         Upload Invoice File
       </h2>
 
@@ -1137,7 +1137,7 @@ const InvoiceUploader = () => {
         onChange={handleFileChange}
         className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4
                   file:rounded-md file:border-0
-                  file:text-sm file:font-semibold
+                  file:text-base file:font-semibold
                   file:bg-sky-100 file:text-blue-900
                   hover:file:bg-sky-200 mb-6"
       />
@@ -1169,9 +1169,9 @@ const InvoiceUploader = () => {
         <div className="mt-6 flex justify-center">
           <button
             onClick={handleDownloadAll}
-            className="max-w-4xl mx-auto w-full px-6 py-4 text-white bg-blue-700 hover:bg-blue-800 rounded-lg text-base font-semibold"
+            className="max-w-4xl mx-auto w-full px-6 py-4 text-xl text-white tracking-wider bg-blue-700 hover:bg-blue-800 rounded-lg font-semibold"
           >
-            Download Biling Excel Files
+            Download Billing Excel Files
           </button>
         </div>
       )}
@@ -1225,14 +1225,14 @@ const InvoiceUploader = () => {
       {showBillingPrompt && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-8 rounded shadow max-w-72">
-            <p className="mb-2 text-lg font-bold text-blue-900">Are you doing billing?</p>
+            <p className="mb-2 text-xl font-bold text-blue-900">Are you doing billing?</p>
             <hr className="mb-3 border-t-2 border-blue-200" />
-            <p className="mb-12 text-sm text-gray-700">
+            <p className="mb-6 text-base text-gray-700">
               Selecting <strong className="text-blue-900">Yes</strong> will update the invoice number in the database.
             </p>
             <div className="flex gap-4 justify-center">
               <button
-                className="bg-blue-200 text-blue-900 font-medium px-4 py-2 rounded"
+                className="bg-blue-200 text-blue-900 font-semibold px-8 py-2 rounded"
                 onClick={() => {
                   setIsBilling(true);
                   setShowBillingPrompt(false);
@@ -1241,7 +1241,7 @@ const InvoiceUploader = () => {
                 Yes
               </button>
               <button
-                className="bg-gray-400 text-white px-4 py-2 rounded"
+                className="bg-gray-400 text-white font-semibold px-8 py-2 rounded"
                 onClick={() => {
                   setIsBilling(false);
                   setShowBillingPrompt(false);
@@ -1257,4 +1257,4 @@ const InvoiceUploader = () => {
   );
 };
 
-export default InvoiceUploader;
+export default Billing;
