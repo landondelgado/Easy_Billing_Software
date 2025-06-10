@@ -29,9 +29,9 @@ function App() {
         </nav>
 
         {/* Right: Sign Out */}
-        <div className="z-10 pr-10 slide-in-top">
+        <div className="z-10 slide-in-top">
           <button
-            className="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded transition"
+            className="bg-blue-400 hover:bg-blue-500 text-white font-bold px-4 py-1.5 pb-2 rounded transition"
             onClick={() => {
               if (window.google && window.google.accounts?.id) {
                 window.google.accounts.id.disableAutoSelect();
