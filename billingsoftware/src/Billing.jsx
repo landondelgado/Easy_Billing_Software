@@ -1,5 +1,5 @@
 // Billing.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { parseInvoiceCSV, parseCalvertCSV } from './parseInvoiceData';
 import { saveAs } from 'file-saver';
 import ExcelJS from 'exceljs';
@@ -17,6 +17,15 @@ const Billing = () => {
   const [calvertData, setCalvertData] = useState(null);
   const [showBillingPrompt, setShowBillingPrompt] = useState(false);
   const [isBilling, setIsBilling] = useState(null);
+  const [showContent, setShowContent] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowContent(true);
+    }, 100); // 100ms delay
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const token = localStorage.getItem('id_token');
   
@@ -1160,7 +1169,7 @@ const Billing = () => {
   }
 
   return (
-    <div className="max-w-fit min-w-full mx-auto p-8 bg-white shadow-xl rounded-lg border border-blue-100">
+    <div className={`max-w-fit min-w-full mx-auto p-8 bg-white shadow-xl rounded-lg border border-blue-100 transition-opacity duration-1000 ${showContent ? 'opacity-100' : 'opacity-0'}`}>
       <h2 className="text-3xl font-bold text-blue-900 mb-6 text-center tracking-wide pb-8 border-b-2">
         Upload Invoice File
       </h2>

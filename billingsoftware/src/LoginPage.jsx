@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 const API_BASE =
   process.env.NODE_ENV === 'development'
@@ -6,6 +6,9 @@ const API_BASE =
     : '';
 
 function LoginPage({ onLogin }) {
+  const [animating, setAnimating] = useState(false);
+  const [showSweep, setShowSweep] = useState(false);
+
   useEffect(() => {
     /* global google */
     if (window.google) {
@@ -33,7 +36,15 @@ function LoginPage({ onLogin }) {
       localStorage.setItem('id_token', response.credential);
 
       if (res.ok && data.authorized) {
-        onLogin({ name: data.name, email: data.email, picture: data.picture });
+        setAnimating(true);
+
+        setTimeout(() => {
+          setShowSweep(true);
+        }, 700);
+
+        setTimeout(() => {
+          onLogin({ name: data.name, email: data.email, picture: data.picture });
+        }, 1700);
       } else {
         alert('Unauthorized user');
       }
@@ -44,9 +55,9 @@ function LoginPage({ onLogin }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
+    <div className="relative min-h-screen flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="w-full flex items-center justify-between p-4 pl-8 pr-8 bg-gray-900 text-white shadow-md">
+      <header className="w-full flex items-center justify-between p-4 pl-8 pr-8 bg-gray-900 text-white z-10">
         <div className="flex items-center space-x-3 pl-6 pr-6 border-r border-l border-gray-600">
           <div className="bg-white rounded-lg p-2">
             <img src="/ReboundLogo.png" alt="Rebound Rehab Logo" className="h-10 w-10 object-contain" />
@@ -58,14 +69,18 @@ function LoginPage({ onLogin }) {
       </header>
 
       {/* Login Section */}
-      <main className="flex flex-1 flex-col items-center justify-center px-4 text-center">
-        <div className="bg-white shadow-lg px-20 py-16 rounded-xl max-w-md w-full border border-blue-200">
-          <div className="flex justify-center mb-4 border-b-2 pb-4 border-blue-200">
-            <img src="/ReboundLogo.png" alt="Rebound Rehab Logo" className="h-40 w-40 object-contain" />
+      <main className={`flex flex-1 flex-col items-center justify-center bg-gradient-to-t from-blue-950 to-gray-900 px-4 text-center`}>
+        <div className={`shadow-lg rounded-3xl p-0.5 max-w-md w-full bg-clip-border bg-gradient-to-t from-blue-900 to-blue-400 transition-opacity duration-700 ${animating ? 'opacity-0' : 'opacity-100'}`}>
+          <div className="bg-white h-max px-20 py-16 rounded-[calc(1.5rem-2px)]">
+            <div className="flex justify-center mb-4 border-b-2 pb-4 border-blue-200">
+              <img src="/ReboundLogo.png" alt="Rebound Rehab Logo" className="h-40 w-40 object-contain" />
+            </div>
+            <h1 className="text-2xl font-bold mb-6 text-blue-900 border-b-2 border-blue-200 pb-4">Login to Rebound Rehab Billing</h1>
+            <div id="googleSignInDiv" className="flex justify-center shadow-md"></div>
           </div>
-          <h1 className="text-2xl font-semibold mb-6 text-blue-900 border-b-2 border-blue-200 pb-4">Login to Rebound Rehab Billing</h1>
-          <div id="googleSignInDiv" className="flex justify-center"></div>
         </div>
+        {/* Sweep Animation */}
+        <div className={`absolute top-[50px] left-0 w-full h-full bg-white transition-transform duration-1000 ease-in-out z-0 ${showSweep ? 'translate-y-10' : 'translate-y-full'}`} />
       </main>
     </div>
   );

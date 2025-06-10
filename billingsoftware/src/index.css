@@ -6,6 +6,41 @@ body {
   font-family: 'Urfa', sans-serif;
 }
 
+@keyframes fadeInGradient {
+  from {
+    background-position: -100% 0%;
+  }
+  to {
+    background-position: 0% 0%;
+  }
+}
+
+@keyframes slideInTop {
+  from {
+    transform: translate(-50%, -100%);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0%);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-top {
+  animation: slideInTop 1s ease-out forwards;
+}
+
+.fade-in-gradient {
+  animation: fadeInGradient 1s ease-out forwards;
+  background-size: 200% 100%;
+  background-image: linear-gradient(to left, #1e3a8a, #111827); /* gray-900 to blue-950 */
+  background-repeat: no-repeat;
+}
+
+.slide-in-top {
+  animation: slideInTop 1s ease-out forwards;
+}
+
 @keyframes fadeInSlideRight {
   from {
     opacity: 0;
