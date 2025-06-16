@@ -253,5 +253,16 @@ export async function parseInvoiceCSV(csvText, citiesData, agencyData, promptFor
     end: allDates.length ? new Date(Math.max(...allDates.map(d => new Date(d)))).toLocaleDateString() : ''
   };
 
+  // Remove agencies with no visits
+  for (const agency of Object.keys(groupedData)) {
+    if (groupedData[agency].length === 0) {
+      delete groupedData[agency];
+      delete matrixData[agency];
+      delete mileageData[agency];
+      delete summaryTable[agency];
+      delete roles[agency];
+    }
+  }
+
   return { records: groupedData, matrix: matrixData, mileage: mileageData, summary: summaryTable, payPeriod, roles };
 }
