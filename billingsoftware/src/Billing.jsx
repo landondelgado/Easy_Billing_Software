@@ -317,7 +317,7 @@ const Billing = () => {
         let current = new Date(minDate);
         while (current <= maxDate) {
             const yyyy = current.getFullYear();
-            const mm = String(current.getMonth() + 1).padStart(2, '0');
+            const mm = String(current.getMonth()).padStart(2, '0');
             const dd = String(current.getDate()).padStart(2, '0');
             sortedDates.push(`${yyyy}-${mm}-${dd}`);
             current.setDate(current.getDate() + 1);
@@ -369,7 +369,7 @@ const Billing = () => {
             worksheet.addRow(['Name', 'Disc', 'Mileage', ...sortedDates.map(d => {
                 const [year, month, day] = d.split('-');
                 const date = new Date(Number(year), Number(month), Number(day));
-                return `${date.getMonth()}/${date.getDate()}`;
+                return `${date.getMonth() + 1}/${date.getDate()}`;
             })]);
 
             worksheet.mergeCells(`A${rowPointer}:B${rowPointer}`);
