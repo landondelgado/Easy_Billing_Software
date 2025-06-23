@@ -367,8 +367,9 @@ const Billing = () => {
 
             worksheet.addRow([]);
             worksheet.addRow(['Name', 'Disc', 'Mileage', ...sortedDates.map(d => {
-                const date = new Date(d);
-                return `${date.getMonth() + 1}/${date.getDate() + 1}`;
+                const [year, month, day] = d.split('-');
+                const date = new Date(Number(year), Number(month), Number(day));
+                return `${date.getMonth()}/${date.getDate()}`;
             })]);
 
             worksheet.mergeCells(`A${rowPointer}:B${rowPointer}`);

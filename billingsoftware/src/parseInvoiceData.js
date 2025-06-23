@@ -156,7 +156,6 @@ export async function parseInvoiceCSV(csvText, citiesData, agencyData, promptFor
       let groupKey = visitGroup?.replace(/[-\s]/g, '_');
       if (groupKey?.toUpperCase() === 'DISCHARGE') groupKey = 'DC';
 
-      console.log("citiesData:", citiesData, Array.isArray(citiesData));
       let cityMatch = citiesData.find(c => c.name?.toLowerCase().trim() === City?.toLowerCase().trim());
       let cityType = 'In Town';
 
@@ -228,9 +227,6 @@ export async function parseInvoiceCSV(csvText, citiesData, agencyData, promptFor
       } else if (cityType.toLowerCase() === 'out of town' && ootRate > 0) {
           prefix = 'o';
       }
-
-      // console.log(`City: ${City}, Matched: ${cityMatch?.name}, OOT: ${cityMatch?.outtown}, Extended: ${cityMatch?.extended}`);
-      // console.log(`Agency: ${agency?.computer}, OOT Rate: ${agency?.oot}, CityType: ${cityType}`);
 
       const visitTypes = [visitCode];
       if (prefix) visitTypes.push(prefix);
