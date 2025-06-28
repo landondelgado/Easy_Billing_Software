@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import LoginPage from './LoginPage'
 import Billing from './Billing';
+import Agencies from './Agencies';
 
 function App() {
   const [user, setUser] = useState(null);
+  const [page, setPage] = useState('billing');
 
   if (!user) {
     return <LoginPage onLogin={setUser} />;
@@ -24,14 +26,24 @@ function App() {
 
         {/* Center: Absolutely centered nav */}
         <nav className="animate-slide-in-top absolute left-1/2 space-x-6 opacity-0 ">
-          <button className="text-xl font-semibold tracking-wider hover:text-blue-400 transition-all duration-200">Billing</button>
-          <button className="text-xl font-semibold tracking-wider hover:text-blue-400 transition-all duration-200">Agencies</button>
+          <button 
+            onClick={() => setPage('billing')}
+            className="text-xl font-semibold tracking-widest hover:text-blue-400 transition-all duration-200"
+          >
+            Billing
+          </button>
+          <button 
+            onClick={() => setPage('agencies')}
+            className="text-xl font-semibold tracking-wider hover:text-blue-400 transition-all duration-200"
+          >
+            Agencies
+          </button>
         </nav>
 
         {/* Right: Sign Out */}
         <div className="z-10 slide-in-top">
           <button
-            className="bg-blue-400 hover:bg-blue-500 text-white font-bold px-4 py-1.5 pb-2 rounded transition"
+            className="bg-blue-400 hover:bg-blue-500 text-white font-semibold px-4 py-1.5 pb-2 rounded transition"
             onClick={() => {
               if (window.google && window.google.accounts?.id) {
                 window.google.accounts.id.disableAutoSelect();
@@ -45,7 +57,8 @@ function App() {
       </header>
 
       <main className="p-6">
-        <Billing />
+        {page === 'billing' && <Billing />}
+        {page === 'agencies' && <Agencies token={localStorage.getItem('id_token')} />}
       </main>
     </div>
   );

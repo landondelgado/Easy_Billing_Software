@@ -46,6 +46,49 @@ const authenticate = async (req, res, next) => {
   }
 };
 
+app.post('/agencydata', authenticate, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { rows = [], deletedIds = [] } = req.body;
+
+    await client.query('BEGIN');
+
+    // Step 1: Delete removed rows
+    if (deletedIds.length > 0) {
+      const placeholders = deletedIds.map((_, i) => `$${i + 1}`).join(', ');
+      await client.query(`DELETE FROM agencydata WHERE id IN (${placeholders})`, deletedIds);
+      console.log('🗑️ Deleted IDs:', deletedIds);
+    }
+
+    // Step 2: Insert or update remaining rows
+    for (const row of rows) {
+      const { id, ...fields } = row;
+      const columns = Object.keys(fields);
+      const values = Object.values(fields);
+
+      if (!id) {
+        const placeholders = columns.map((_, i) => `$${i + 1}`);
+        const query = `INSERT INTO agencydata (${columns.join(', ')}) VALUES (${placeholders.join(', ')})`;
+        await client.query(query, values);
+      } else {
+        const setClauses = columns.map((col, i) => `${col} = $${i + 1}`).join(', ');
+        const query = `UPDATE agencydata SET ${setClauses} WHERE id = $${columns.length + 1}`;
+        await client.query(query, [...values, id]);
+      }
+    }
+
+    await client.query('COMMIT');
+    res.status(200).json({ message: 'Changes saved' });
+
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('❌ Save failed:', err.message);
+    res.status(500).json({ error: 'Save failed' });
+  } finally {
+    client.release();
+  }
+});
+
 // Routes
 app.post('/api/auth/google', async (req, res) => {
     const { credential } = req.body;
