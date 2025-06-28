@@ -1,5 +1,6 @@
 // Agencies.jsx
 import React, { useEffect, useState } from 'react';
+import { usePrompt } from './hooks/usePrompt';
 
 const API_BASE = process.env.NODE_ENV === 'development' ? 'http://localhost:5000' : '';
 
@@ -18,12 +19,29 @@ function Agencies({ token }) {
   const [deleteIndex, setDeleteIndex] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
+  usePrompt(dirtyRows.size > 0 || deletedIds.length > 0);
+
   const dollarFields = [
     'mileage', 'pteval', 'ptre_eval', 'ptdc', 'ptvisit',
     'oteval', 'otre_eval', 'otdc', 'otvisit',
     'steval', 'stre_eval', 'stdc', 'stvisit',
     'extended', 'oot'
   ];
+
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (dirtyRows.size > 0 || deletedIds.length > 0) {
+        e.preventDefault();
+        e.returnValue = ''; // Chrome requires this to show the prompt
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [dirtyRows, deletedIds]);
 
   // useEffect(() => {
   //   const timer = setTimeout(() => {
