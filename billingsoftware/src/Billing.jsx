@@ -1276,15 +1276,6 @@ const Billing = () => {
             </p>
             <div className="flex gap-4 justify-center">
               <button
-                className="bg-blue-200 text-blue-900 font-semibold px-8 py-2 rounded"
-                onClick={() => {
-                  setIsBilling(true);
-                  setShowBillingPrompt(false);
-                }}
-              >
-                Yes
-              </button>
-              <button
                 className="bg-gray-400 text-white font-semibold px-8 py-2 rounded"
                 onClick={() => {
                   setIsBilling(false);
@@ -1292,6 +1283,15 @@ const Billing = () => {
                 }}
               >
                 No
+              </button>
+              <button
+                className="bg-blue-200 text-blue-900 font-semibold px-8 py-2 rounded"
+                onClick={() => {
+                  setIsBilling(true);
+                  setShowBillingPrompt(false);
+                }}
+              >
+                Yes
               </button>
             </div>
           </div>

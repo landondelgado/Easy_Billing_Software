@@ -15,6 +15,15 @@ function Agencies({ token }) {
   const [hasFetched, setHasFetched] = useState(false);
   const [showContent, setShowContent] = useState(false);
   const [fadeOutLoader, setFadeOutLoader] = useState(false);
+  const [deleteIndex, setDeleteIndex] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  const dollarFields = [
+    'mileage', 'pteval', 'ptre_eval', 'ptdc', 'ptvisit',
+    'oteval', 'otre_eval', 'otdc', 'otvisit',
+    'steval', 'stre_eval', 'stdc', 'stvisit',
+    'extended', 'oot'
+  ];
 
   // useEffect(() => {
   //   const timer = setTimeout(() => {
@@ -147,13 +156,20 @@ function Agencies({ token }) {
     }]);
   };
 
-  const handleRemove = (index) => {
+  const confirmRemove = (index) => {
+    setDeleteIndex(index);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmedRemove = () => {
     const updated = [...editing];
-    const removed = updated.splice(index, 1);
+    const removed = updated.splice(deleteIndex, 1);
     if (removed[0]?.id) {
       setDeletedIds([...deletedIds, removed[0].id]);
     }
     setEditing(updated);
+    setShowDeleteModal(false);
+    setDeleteIndex(null);
   };
 
   const formatHeader = (key) => {
@@ -187,12 +203,12 @@ function Agencies({ token }) {
       <h2 className="text-3xl font-bold text-blue-900 mb-6 text-center tracking-wide pb-8 border-b-2">Manage Agencies</h2>
 
       <div className="w-full overflow-x-auto">
-        <div className="overflow-x-auto border border-gray-200 rounded">
-          <table className="border text-sm" style={{ tableLayout: 'auto', width: 'auto' }}>
-            <thead className="bg-gray-100 text-left">
+        <div className="overflow-x-auto border border-gray-200 rounded overflow-y-auto max-h-[70vh]">
+          <table className="text-sm w-full" style={{ tableLayout: 'auto', width: 'auto' }}>
+            <thead className="bg-gray-100 text-left sticky top-0 z-10">
               <tr>
                 {Object.keys(editing[0] || {}).filter(key => key !== 'id').map(key => (
-                  <th key={key} className="px-2 py-1 text-center border-b border-gray-300 whitespace-nowrap">
+                  <th key={key} className="pl-4 py-1 text-center border-b border-gray-300 whitespace-nowrap">
                     {formatHeader(key)}
                   </th>
                 ))}
@@ -204,19 +220,24 @@ function Agencies({ token }) {
                 <tr key={idx}>
                   {Object.keys(row).filter(key => key !== 'id').map(key => (
                     <td key={key} className="px-2 py-1 border-b whitespace-nowrap">
-                      <input
-                        className={`p-1 border border-gray-300 rounded text-sm w-full ${
-                          ['computer', 'name', 'attention', 'address', 'city__state__zip_code'].includes(key)
-                            ? 'min-w-[230px]'
-                            : 'min-w-[40px]'
-                        }`}
-                        value={row[key] ?? ''}
-                        onChange={(e) => handleChange(idx, key, e.target.value)}
-                      />
+                      <div className="relative w-full">
+                        {dollarFields.includes(key) && (
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
+                        )}
+                        <input
+                          className={`pl-5 pr-1 py-1 border-l border-gray-400 text-sm w-full ${
+                            ['computer', 'name', 'attention', 'address', 'city__state__zip_code'].includes(key)
+                              ? 'min-w-[230px]'
+                              : 'min-w-[60px]'
+                          }`}
+                          value={row[key] ?? ''}
+                          onChange={(e) => handleChange(idx, key, e.target.value)}
+                        />
+                      </div>
                     </td>
                   ))}
                   <td className="px-2 py-1 border-b">
-                    <button onClick={() => handleRemove(idx)} className="text-white bg-red-600 rounded-md py-1.5 px-2 hover:bg-red-800">Delete</button>
+                    <button onClick={() => confirmRemove(idx)} className="text-white bg-red-600 rounded-md py-1.5 px-2 hover:bg-red-800">Delete</button>
                   </td>
                 </tr>
               ))}
@@ -253,6 +274,25 @@ function Agencies({ token }) {
               <button onClick={cancelSave} className="bg-gray-500 text-white px-4 py-2 rounded">Cancel</button>
               <button onClick={revertAllChanges} className="bg-blue-200 text-blue-950 font-semibold px-4 py-2 rounded">Revert All Changes</button>
               <button onClick={confirmSave} className="bg-blue-950 text-white font-semibold px-4 py-2 rounded">Confirm Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-8 rounded shadow-lg max-w-72 w-full">
+            <h3 className="mb-2 text-xl font-bold text-blue-900 border-b-2 border-blue-200 pb-2">Confirm Delete</h3>
+            <p className="mb-6 text-base text-gray-700">
+              Are you sure you want to delete this agency?
+            </p>
+            <div className="flex justify-center gap-4">
+              <button onClick={() => setShowDeleteModal(false)} className="bg-gray-400 text-white px-4 py-2 rounded">
+                Cancel
+              </button>
+              <button onClick={handleConfirmedRemove} className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-800">
+                Yes, Delete
+              </button>
             </div>
           </div>
         </div>
