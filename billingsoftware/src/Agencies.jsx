@@ -58,7 +58,7 @@ function Agencies({ token }) {
     });
     const data = await res.json();
     const elapsed = Date.now() - start;
-    const minDuration = 500;
+    const minDuration = 0;
     setTimeout(() => {
     const sorted = [...data].sort((a, b) =>
       (a.computer || '').localeCompare(b.computer || '', undefined, { sensitivity: 'base' })
@@ -72,7 +72,7 @@ function Agencies({ token }) {
     setTimeout(() => {
       setLoading(false);     // actually remove loader
       setShowContent(true);  // fade in content
-    }, 200); // match the transition duration
+    }, 300); // match the transition duration
   }, Math.max(0, minDuration - elapsed));
   };
 
@@ -223,10 +223,10 @@ function Agencies({ token }) {
       <div className="w-full overflow-x-auto">
         <div className="overflow-x-auto border border-gray-200 rounded overflow-y-auto max-h-[70vh]">
           <table className="text-sm w-full" style={{ tableLayout: 'auto', width: 'auto' }}>
-            <thead className="bg-gray-100 text-left sticky top-0 z-10">
+            <thead className="bg-gray-100 text-left sticky top-0 z-50">
               <tr>
                 {Object.keys(editing[0] || {}).filter(key => key !== 'id').map(key => (
-                  <th key={key} className="pl-4 py-1 text-center border-b border-gray-300 whitespace-nowrap">
+                  <th key={key} className={`pl-4 py-1 text-center border-b border-gray-300 whitespace-nowrap ${key === 'computer' ? 'z-50 py-0 sticky left-0 border-b-2 bg-gray-100' : ''}`}>
                     {formatHeader(key)}
                   </th>
                 ))}
@@ -235,18 +235,18 @@ function Agencies({ token }) {
             </thead>
             <tbody>
               {editing.map((row, idx) => (
-                <tr key={idx}>
+                <tr key={idx} className={idx % 2 === 0 ? 'bg-blue-100' : ''}>
                   {Object.keys(row).filter(key => key !== 'id').map(key => (
-                    <td key={key} className="px-2 py-1 border-b whitespace-nowrap">
+                    <td key={key} className={`px-2 py-1 border-b whitespace-nowrap ${key === 'computer' ? `z-10 sticky left-0 border-y-2 bg-blue-950 text-white border-none ` : ''}`}>
                       <div className="relative w-full">
                         {dollarFields.includes(key) && (
                           <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
                         )}
                         <input
-                          className={`pl-5 pr-1 py-1 border-l border-gray-400 text-sm w-full ${
+                          className={`pl-5 pr-1 py-1 border-l bg-transparent border-gray-400 text-sm w-full ${
                             ['computer', 'name', 'attention', 'address', 'city__state__zip_code'].includes(key)
-                              ? 'min-w-[230px]'
-                              : 'min-w-[60px]'
+                              ? `min-w-[230px]`
+                              : `min-w-[60px]`
                           }`}
                           value={row[key] ?? ''}
                           onChange={(e) => handleChange(idx, key, e.target.value)}

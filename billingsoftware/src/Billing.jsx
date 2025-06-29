@@ -9,15 +9,26 @@ const API_BASE = //connect frontend to backend
     ? 'http://localhost:5000'
     : '';
 
+const numericFields = [
+  "mileage", "pteval", "ptre_eval", "ptvisit",
+  "oteval", "otre_eval", "otvisit",
+  "steval", "stre_eval", "stvisit",
+  "extended", "oot"
+];
+
 const Billing = () => {
   const [parsedData, setParsedData] = useState(null);
   const [pendingCity, setPendingCity] = useState(null);
   const [cityPromptResolve, setCityPromptResolve] = useState(null);
+  const [allCitiesResolved, setAllCitiesResolved] = useState(false);
   const [step, setStep] = useState(1);
   const [calvertData, setCalvertData] = useState(null);
   const [showBillingPrompt, setShowBillingPrompt] = useState(false);
   const [isBilling, setIsBilling] = useState(null);
   const [showContent, setShowContent] = useState(false);
+  const [pendingAgency, setPendingAgency] = useState(null);
+  const [agencyPromptResolve, setAgencyPromptResolve] = useState(null);
+  const [agencyFormData, setAgencyFormData] = useState({});
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -96,19 +107,32 @@ const Billing = () => {
       const reader = new FileReader();
       reader.onload = async (event) => {
         const csvText = event.target.result;
-        const result = await parseInvoiceCSV(csvText, citiesData, agencyData, async (city) => {
-          return new Promise((resolve) => {
-            setPendingCity(city);
-            setCityPromptResolve(() => resolve);
-          });
-        });
+
+        const result = await parseInvoiceCSV(
+          csvText,
+          citiesData,
+          agencyData,
+          async (city) => {
+            return new Promise((resolve) => {
+              setPendingCity(city);
+              setCityPromptResolve(() => resolve);
+            });
+          },
+          () => setAllCitiesResolved(true),
+          async (agencyName) => {
+            return new Promise((resolve) => {
+              setPendingAgency(agencyName);
+              setAgencyPromptResolve(() => resolve);
+            });
+          }
+        );
 
         const flattened = Object.entries(result.records).flatMap(([agency, records]) =>
           records.map((record) => ({ ...record, Agency: agency }))
         );
 
         setParsedData({ ...result, flattened, agencyData });
-        setStep(2); // Move to next step
+        setStep(2); // Move to Step 2 after parsing
       };
 
       reader.readAsText(file);
@@ -121,8 +145,26 @@ const Billing = () => {
     }
   };
 
-  const handleCityTypeSelection = (type) => {
-    if (cityPromptResolve) {
+  const handleCityTypeSelection = async (type) => {
+    if (pendingCity && cityPromptResolve) {
+      try {
+        // Save to DB
+        await fetch(`${API_BASE}/cities`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            name: pendingCity,
+            type: type
+          })
+        });
+      } catch (err) {
+        console.error('Failed to save new city:', err);
+      }
+
+      // Continue resolving city type
       cityPromptResolve(type);
       setPendingCity(null);
       setCityPromptResolve(null);
@@ -797,7 +839,11 @@ const Billing = () => {
 
           // Due date
           const endDate = new Date(parsedData.payPeriod.end);
-          const dueDate = new Date(endDate.setMonth(endDate.getMonth() + 1));
+          const invoiceDueDays = parseInt(parsedData.invoiceDue[agencyInfo.name]);
+          console.log("Agency: ", agencyInfo.name);
+          console.log("Invoice due days: ", invoiceDueDays);
+          const dueDate = new Date(endDate);
+          dueDate.setDate(dueDate.getDate() + invoiceDueDays);
           worksheet.getCell('I41').value = dueDate.toLocaleDateString();
           worksheet.getCell('I41').font = { bold: true, color: { argb: 'FFFF0000'}, size: 12 };
           worksheet.getCell('I41').alignment = { horizontal: 'left', vertical: 'middle'};
@@ -879,9 +925,31 @@ const Billing = () => {
     await handleSummaryBreakdownDownload(map);
   };
 
+  const handleNewAgencySubmit = async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const newAgency = Object.fromEntries(new FormData(form).entries());
+    newAgency.invoice_due = parseInt(newAgency.invoice_due);
+    newAgency.mileage = parseFloat(newAgency.mileage);
 
+    try {
+      const token = localStorage.getItem('id_token');
+      await fetch(`${API_BASE}/agencydata`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ rows: [newAgency], deletedIds: [] })
+      });
 
-
+      agencyPromptResolve(newAgency); // resume parseInvoiceCSV
+      setPendingAgency(null);
+      setAgencyPromptResolve(null);
+    } catch (err) {
+      console.error('Failed to save new agency:', err);
+    }
+  };
 
   function stringSimilarity(str1 = '', str2 = '') {
     const a = str1.toLowerCase().trim();
@@ -1209,7 +1277,7 @@ const Billing = () => {
         </div>
       )}
 
-      {parsedData && (
+      {parsedData && allCitiesResolved && (
         <div className="mt-6 pb-6 flex justify-center border-b-2">
           <button
             onClick={handleDownloadAll}
@@ -1294,6 +1362,159 @@ const Billing = () => {
                 Yes
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {pendingAgency && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-md max-w-2xl w-full">
+            <h2 className="mb-2 text-xl font-bold text-blue-900">
+              Add New Agency: {pendingAgency}
+            </h2>
+            <hr className="mb-4 border-t-2 border-blue-200" />
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const token = localStorage.getItem("id_token");
+
+                const fields = {
+                  computer: pendingAgency,
+                  name: agencyFormData.name || "",
+                  attention: agencyFormData.attention || "",
+                  address: agencyFormData.address || "",
+                  city__state__zip_code: agencyFormData.city__state__zip_code || "",
+                  invoice_due: parseInt(agencyFormData.invoice_due) || 0,
+                  mileage: parseFloat(agencyFormData.mileage) || 0,
+                  pteval: parseFloat(agencyFormData.pteval) || 0,
+                  ptre_eval: parseFloat(agencyFormData.ptre_eval) || 0,
+                  ptvisit: parseFloat(agencyFormData.ptvisit) || 0,
+                  oteval: parseFloat(agencyFormData.oteval) || 0,
+                  otre_eval: parseFloat(agencyFormData.otre_eval) || 0,
+                  otvisit: parseFloat(agencyFormData.otvisit) || 0,
+                  steval: parseFloat(agencyFormData.steval) || 0,
+                  stre_eval: parseFloat(agencyFormData.stre_eval) || 0,
+                  stvisit: parseFloat(agencyFormData.stvisit) || 0,
+                  extended: parseFloat(agencyFormData.extended) || 0,
+                  oot: parseFloat(agencyFormData.oot) || 0,
+                };
+
+                numericFields.forEach((field) => {
+                  if (
+                    agencyFormData[field] !== undefined &&
+                    agencyFormData[field] !== ""
+                  ) {
+                    fields[field] = parseFloat(agencyFormData[field]);
+                  }
+                });
+
+                try {
+                  await fetch(`${API_BASE}/agencydata`, {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ rows: [fields], deletedIds: [] }),
+                  });
+
+                  agencyPromptResolve(fields);
+                  setPendingAgency(null);
+                  setAgencyPromptResolve(null);
+                  setAgencyFormData({});
+                } catch (err) {
+                  console.error("Failed to save agency:", err);
+                }
+              }}
+              className="space-y-6"
+            >
+              {/* Section: Postal Information */}
+              <div>
+                <h3 className="text-lg font-semibold text-blue-800 mb-2">Postal Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {["name", "attention", "address", "city__state__zip_code"].map((field) => (
+                    <input
+                      key={field}
+                      name={field}
+                      placeholder={field.replace(/_/g, " ").toUpperCase()}
+                      value={agencyFormData[field] || ""}
+                      onChange={(e) =>
+                        setAgencyFormData({
+                          ...agencyFormData,
+                          [field]: e.target.value,
+                        })
+                      }
+                      className="border border-gray-300 p-2 rounded"
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Section: Invoice Due Date */}
+              <div>
+                <h3 className="text-lg font-semibold text-blue-800 mb-2">Invoice Due Date</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <input
+                    name="invoice_due"
+                    placeholder="INVOICE DUE"
+                    value={agencyFormData.invoice_due || ""}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (/^\d*$/.test(value)) {
+                        setAgencyFormData({
+                          ...agencyFormData,
+                          invoice_due: value,
+                        });
+                      }
+                    }}
+                    inputMode="numeric"
+                    className="border border-gray-300 p-2 rounded"
+                  />
+                </div>
+              </div>
+
+              {/* Section: Rates */}
+              <div>
+                <h3 className="text-lg font-semibold text-blue-800 mb-2">Rates</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {[
+                    "mileage", "pteval", "ptre_eval", "ptvisit",
+                    "oteval", "otre_eval", "otvisit",
+                    "steval", "stre_eval", "stvisit",
+                    "extended", "oot"
+                  ].map((field) => (
+                    <input
+                      key={field}
+                      name={field}
+                      placeholder={field.replace(/_/g, " ").toUpperCase()}
+                      value={agencyFormData[field] || ""}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (/^\d*\.?\d*$/.test(value)) {
+                          setAgencyFormData({
+                            ...agencyFormData,
+                            [field]: value,
+                          });
+                        }
+                      }}
+                      inputMode="decimal"
+                      className="border border-gray-300 p-2 rounded"
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex justify-center gap-4">
+                <button
+                  type="submit"
+                  className="bg-blue-200 text-blue-900 font-semibold px-8 py-2 rounded"
+                >
+                  Save Agency
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -70,6 +70,7 @@ app.post('/agencydata', authenticate, async (req, res) => {
         const placeholders = columns.map((_, i) => `$${i + 1}`);
         const query = `INSERT INTO agencydata (${columns.join(', ')}) VALUES (${placeholders.join(', ')})`;
         await client.query(query, values);
+        console.log("🚀 Inserting agency:", { columns, values });
       } else {
         const setClauses = columns.map((col, i) => `${col} = $${i + 1}`).join(', ');
         const query = `UPDATE agencydata SET ${setClauses} WHERE id = $${columns.length + 1}`;

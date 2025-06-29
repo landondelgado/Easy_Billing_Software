@@ -92,7 +92,7 @@ export async function parseCalvertCSV(fileBuffer) {
   return data;
 }
 
-export async function parseInvoiceCSV(csvText, citiesData, agencyData, promptForCityType) {
+export async function parseInvoiceCSV(csvText, citiesData, agencyData, promptForCityType, onComplete, promptForAgency) {
   const groupedData = {};
   const matrixData = {};
   const mileageData = {};
@@ -102,6 +102,7 @@ export async function parseInvoiceCSV(csvText, citiesData, agencyData, promptFor
   let currentHeaders = [];
   let skipUntilNextAgency = false;
   let allDates = [];
+  let invoiceDue = {};
 
   const lines = csvText.split(/\r?\n/);
 
@@ -166,9 +167,13 @@ export async function parseInvoiceCSV(csvText, citiesData, agencyData, promptFor
         else if (cityType === 'Out of Town') newCity.oot = true;
         else if (cityType === 'Extended') newCity.extended = true;
 
+        const token = localStorage.getItem('id_token');
         await fetch(`${API_BASE}/cities`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
           body: JSON.stringify(newCity)
         });
 
@@ -178,7 +183,17 @@ export async function parseInvoiceCSV(csvText, citiesData, agencyData, promptFor
         else if (cityMatch?.outtown === true || cityMatch?.outtown === 't') cityType = 'Out of Town';
       }
 
-      const agency = agencyData.find(a => a.computer?.toLowerCase() === currentAgency?.toLowerCase());
+      let agency = agencyData.find(a => a.computer?.toLowerCase() === currentAgency?.toLowerCase());
+
+      if (!agency) {
+        agency = await promptForAgency(currentAgency);
+        agencyData.push(agency); // Allow rest of parsing to use it
+      }
+
+      if (agency.computer) {
+        invoiceDue[agency.name] = parseInt(agency.invoice_due);
+      }
+
       let baseRate = 0;
       let cityAdj = 0;
       let totalRate = 0;
@@ -260,5 +275,9 @@ export async function parseInvoiceCSV(csvText, citiesData, agencyData, promptFor
     }
   }
 
-  return { records: groupedData, matrix: matrixData, mileage: mileageData, summary: summaryTable, payPeriod, roles };
+  if (typeof onComplete === 'function') {
+    onComplete();
+  }
+
+  return { records: groupedData, matrix: matrixData, mileage: mileageData, summary: summaryTable, payPeriod, roles, invoiceDue };
 }
