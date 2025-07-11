@@ -1292,7 +1292,7 @@ const Billing = () => {
         <div className="mt-10 grid grid-cols-2 gap-6">
           {/* Calvert Table */}
           <div>
-            <h3 className="text-xl text-center font-semibold mb-2 text-blue-900 animate-fadeInSlideRight border-b-2 pb-2" style={{ animationDelay: `1000ms` }}>Calvert Data</h3>
+            <h3 className="text-xl text-center font-semibold mb-2 text-blue-900 animate-fadeInSlideRight border-b-2 pb-2" style={{ animationDelay: `1000ms` }}>Calvert Invoice</h3>
             <div className="overflow-x-auto border border-gray-200 rounded">
               <table className="min-w-full text-sm text-left text-gray-700">
                 <thead className="bg-gray-100">
@@ -1313,7 +1313,7 @@ const Billing = () => {
 
           {/* Invoice Data Table */}
           <div>
-            <h3 className="text-xl text-center font-semibold mb-2 text-blue-900 animate-fadeInSlideLeft border-b-2 pb-2" style={{ animationDelay: `1000ms` }}>Invoice Data</h3>
+            <h3 className="text-xl text-center font-semibold mb-2 text-blue-900 animate-fadeInSlideLeft border-b-2 pb-2" style={{ animationDelay: `1000ms` }}>Rebound Invoice</h3>
             <div className="overflow-x-auto border border-gray-200 rounded">
               <table className="min-w-full text-sm text-left text-gray-700">
                 <thead className="bg-gray-100">

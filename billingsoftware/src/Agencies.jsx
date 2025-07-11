@@ -218,10 +218,9 @@ function Agencies({ token }) {
 
   return (
     <div className={`max-w-fit min-w-full mx-auto p-8 bg-white shadow-xl rounded-lg border border-blue-100 transition-opacity duration-500 ${showContent ? 'opacity-100' : 'opacity-0'}`}>
-      <h2 className="text-3xl font-bold text-blue-900 mb-6 text-center tracking-wide pb-8 border-b-2">Manage Agencies</h2>
 
       <div className="w-full overflow-x-auto">
-        <div className="overflow-x-auto border border-gray-200 rounded overflow-y-auto max-h-[70vh]">
+        <div className="overflow-x-auto border border-gray-200 rounded overflow-y-auto max-h-[78vh]">
           <table className="text-sm w-full" style={{ tableLayout: 'auto', width: 'auto' }}>
             <thead className="bg-gray-100 text-left sticky top-0 z-50">
               <tr>

@@ -58,12 +58,12 @@ function LoginPage({ onLogin }) {
     <div className="relative min-h-screen flex flex-col overflow-hidden">
       {/* Header */}
       <header className="w-full flex items-center justify-between p-4 pl-8 pr-8 bg-gray-900 text-white z-10">
-        <div className="flex items-center space-x-3 pl-6 pr-6 border-r border-l border-gray-600">
+        <div className="flex items-center space-x-2 pl-4 pr-4 border-r border-l border-gray-600">
           <div className="bg-white rounded-lg p-2">
-            <img src="/ReboundLogo.png" alt="Rebound Rehab Logo" className="h-10 w-10 object-contain" />
+            <img src="/ReboundLogo.png" alt="Rebound Rehab Logo" className="h-5 w-5 object-contain" />
           </div>
-          <span className="font-urfa text-blue-400 text-3xl">
-            <strong className="text-3xl text-white">Rebound</strong>Rehab
+          <span className="font-urfa text-blue-400 text-2xl">
+            <strong className="text-2xl text-white">Rebound</strong>Rehab
           </span>
         </div>
       </header>
@@ -80,7 +80,7 @@ function LoginPage({ onLogin }) {
           </div>
         </div>
         {/* Sweep Animation */}
-        <div className={`absolute top-[50px] left-0 w-full h-full bg-white transition-transform duration-1000 ease-in-out z-0 ${showSweep ? 'translate-y-10' : 'translate-y-full'}`} />
+        <div className={`absolute top-[31px] left-0 w-full h-full bg-white transition-transform duration-1000 ease-in-out z-0 ${showSweep ? 'translate-y-10' : 'translate-y-full'}`} />
       </main>
     </div>
   );
