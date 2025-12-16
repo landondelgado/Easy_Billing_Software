@@ -46,6 +46,7 @@ const authenticate = async (req, res, next) => {
   }
 };
 
+// Routes
 app.post('/agencydata', authenticate, async (req, res) => {
   const client = await pool.connect();
   try {
@@ -90,7 +91,6 @@ app.post('/agencydata', authenticate, async (req, res) => {
   }
 });
 
-// Routes
 app.post('/api/auth/google', async (req, res) => {
     const { credential } = req.body;
 
@@ -182,6 +182,300 @@ if (process.env.NODE_ENV === 'production') {
         res.sendFile(path.join(__dirname, 'billingsoftware/build/index.html'));
     });
 }
+
+app.get('/api/therapists', async (req, res) => {
+  const { rows } = await pool.query(`
+    SELECT
+      therapist_id,
+      first_name,
+      last_name,
+      role,
+      home_location,
+      mileage_rate
+    FROM therapists
+    ORDER BY last_name, first_name
+  `);
+  res.json(rows);
+});
+
+app.get('/api/therapist_rates', async (req, res) => {
+  const { rows } = await pool.query(`
+    SELECT
+      therapist_id,
+      billing_area_id,
+      visit_type_id,
+      rate
+    FROM therapist_rates
+  `);
+  res.json(rows);
+});
+
+app.post('/api/therapist_rates/upsert_many', async (req, res) => {
+  const { rows } = req.body;
+
+  const values = rows
+    .map(
+      (r, i) =>
+        `($${i*4+1}, $${i*4+2}, $${i*4+3}, $${i*4+4})`
+    )
+    .join(',');
+
+  const params = rows.flatMap(r => [
+    r.therapist_id,
+    r.billing_area_id,
+    r.visit_type_id,
+    r.rate,
+  ]);
+
+  await pool.query(`
+    INSERT INTO therapist_rates
+      (therapist_id, billing_area_id, visit_type_id, rate)
+    VALUES ${values}
+    ON CONFLICT (therapist_id, billing_area_id, visit_type_id)
+    DO UPDATE SET rate = EXCLUDED.rate
+  `, params);
+
+  res.json({ success: true });
+});
+
+app.get('/api/billing_cities', async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT
+        city_name,
+        billing_area_id,
+        city_classification
+      FROM billing_cities
+      ORDER BY city_name
+    `);
+
+    res.json(rows);
+  } catch (err) {
+    console.error('billing_cities error:', err);
+    res.status(500).json({ error: 'Failed to load billing cities' });
+  }
+});
+
+app.get('/api/billing_areas', async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT
+        billing_area_id,
+        area_name
+      FROM billing_areas
+      ORDER BY area_name
+    `);
+
+    res.json(rows);
+  } catch (err) {
+    console.error('billing_areas error:', err);
+    res.status(500).json({ error: 'Failed to load billing areas' });
+  }
+});
+
+app.get('/api/visit_types', async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT
+        visit_type_id,
+        visit_code
+      FROM visit_types
+      ORDER BY visit_code
+    `);
+
+    res.json(rows);
+  } catch (err) {
+    console.error('visit_types error:', err);
+    res.status(500).json({ error: 'Failed to load visit types' });
+  }
+});
+
+app.post('/api/billing_cities', async (req, res) => {
+  try {
+    const { city_name, billing_area_id, city_classification } = req.body;
+
+    if (!city_name || !billing_area_id || !city_classification) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    await pool.query(
+      `
+      INSERT INTO billing_cities
+        (city_name, billing_area_id, city_classification)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (city_name)
+      DO UPDATE SET
+        billing_area_id = EXCLUDED.billing_area_id,
+        city_classification = EXCLUDED.city_classification
+      `,
+      [city_name, billing_area_id, city_classification]
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('billing_cities insert error:', err);
+    res.status(500).json({ error: 'Failed to save billing city' });
+  }
+});
+
+// Update therapist mileage rate
+app.post('/api/therapists/update_mileage', async (req, res) => {
+  const { therapist_id, mileage_rate } = req.body;
+
+  if (!therapist_id || mileage_rate == null) {
+    return res.status(400).json({
+      error: 'therapist_id and mileage_rate are required',
+    });
+  }
+
+  const rate = Number(mileage_rate);
+  if (!Number.isFinite(rate)) {
+    return res.status(400).json({
+      error: 'mileage_rate must be a valid number',
+    });
+  }
+
+  try {
+    const result = await pool.query(
+      `
+      UPDATE therapists
+      SET mileage_rate = $1
+      WHERE therapist_id = $2
+      RETURNING therapist_id, mileage_rate
+      `,
+      [rate, therapist_id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({
+        error: 'Therapist not found',
+      });
+    }
+
+    res.json({
+      success: true,
+      therapist: result.rows[0],
+    });
+  } catch (err) {
+    console.error('update mileage rate error:', err);
+    res.status(500).json({
+      error: 'Failed to update mileage rate',
+    });
+  }
+});
+
+app.post('/api/therapists', async (req, res) => {
+  const {
+    first_name,
+    last_name,
+    role,
+    home_location,
+  } = req.body;
+
+  if (!first_name || !last_name || !role || !home_location) {
+    return res.status(400).json({
+      error: 'first_name, last_name, role, and home_location are required',
+    });
+  }
+
+  try {
+    // Prevent duplicates (case-insensitive)
+    const existing = await pool.query(
+      `
+      SELECT therapist_id
+      FROM therapists
+      WHERE LOWER(first_name) = LOWER($1)
+        AND LOWER(last_name) = LOWER($2)
+      `,
+      [first_name.trim(), last_name.trim()]
+    );
+
+    if (existing.rows.length > 0) {
+      return res.status(409).json({
+        error: 'Therapist already exists',
+      });
+    }
+
+    const { rows } = await pool.query(
+      `
+      INSERT INTO therapists (
+        first_name,
+        last_name,
+        role,
+        home_location,
+        mileage_rate
+      )
+      VALUES ($1, $2, $3, $4, NULL)
+      RETURNING *
+      `,
+      [
+        first_name.trim(),
+        last_name.trim(),
+        role.trim(),
+        home_location.trim(),
+      ]
+    );
+
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error('therapists insert error:', err);
+    res.status(500).json({ error: 'Failed to create therapist' });
+  }
+});
+
+// Batch update therapists (partial updates allowed)
+app.post('/api/therapists/update_many', async (req, res) => {
+  const { rows = [] } = req.body;
+
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return res.status(400).json({ error: 'rows must be a non-empty array' });
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    for (const r of rows) {
+      const { therapist_id, ...fields } = r;
+
+      if (!therapist_id) {
+        throw new Error('therapist_id is required');
+      }
+
+      // Remove undefined fields
+      const entries = Object.entries(fields)
+        .filter(([, v]) => v !== undefined);
+
+      if (entries.length === 0) continue;
+
+      const columns = entries.map(([k]) => k);
+      const values = entries.map(([, v]) => v);
+
+      const setClause = columns
+        .map((c, i) => `${c} = $${i + 1}`)
+        .join(', ');
+
+      await client.query(
+        `
+        UPDATE therapists
+        SET ${setClause}
+        WHERE therapist_id = $${columns.length + 1}
+        `,
+        [...values, therapist_id]
+      );
+    }
+
+    await client.query('COMMIT');
+    res.json({ success: true });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('update_many therapists error:', err);
+    res.status(500).json({ error: 'Failed to update therapists' });
+  } finally {
+    client.release();
+  }
+});
 
 const PORT = process.env.PORT || 5000;
 

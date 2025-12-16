@@ -4,6 +4,7 @@ import LoginPage from './LoginPage';
 import Billing from './Billing';
 import Agencies from './Agencies';
 import Header from './Header';
+import Payroll from './Payroll';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -19,6 +20,7 @@ function App() {
             <Route path="/" element={<Navigate to="/billing" />} />
             <Route path="/billing" element={<Billing />} />
             <Route path="/agencies" element={<Agencies token={localStorage.getItem('id_token')} />} />
+            <Route path="/payroll" element={<Payroll token={localStorage.getItem('id_token')} />} />
           </Routes>
         </main>
       </div>

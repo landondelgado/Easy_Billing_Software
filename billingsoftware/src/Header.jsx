@@ -28,6 +28,12 @@ function Header({ setUser }) {
           >
             Agencies
           </Link>
+          <Link 
+            to="/payroll"
+            className="text-lg font-semibold tracking-wider hover:text-blue-400 transition-all duration-200"
+          >
+            Payroll
+          </Link>
         </nav>
 
         {/* Right: Sign Out */}

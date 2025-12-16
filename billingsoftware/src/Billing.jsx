@@ -1038,7 +1038,7 @@ const Billing = () => {
       );
       calvertRows.push(
         <tr key={`missing-calvert-${invoiceIndex}`} className="bg-yellow-100 text-yellow-700 font-semibold animate-fadeInSlideRight" style={{ animationDelay: `${calvertIndex * 15}ms` }}>
-          <td colSpan={7} className="px-3 h-8">⚠ Name not found in Calvert list</td>
+          <td colSpan={7} className="px-3 h-8">⚠ Name not found in Calvert Invoice</td>
         </tr>
       );
       invoiceIndex++;
@@ -1068,7 +1068,7 @@ const Billing = () => {
       );
       invoiceRows.push(
         <tr key={`missing-invoice-${calvertIndex}`} className="bg-yellow-100 text-yellow-700 font-semibold animate-fadeInSlideLeft" style={{ animationDelay: `${calvertIndex * 15}ms` }}>
-          <td colSpan={7} className="px-3 h-8">⚠ Name not found in Invoice list</td>
+          <td colSpan={7} className="px-3 h-8">⚠ Name not found in Rebound Invoice</td>
         </tr>
       );
       calvertIndex++;
@@ -1139,7 +1139,7 @@ const Billing = () => {
       );
       calvertRows.push(
         <tr key={`missing-calvert-${invoiceIndex}`} className="bg-yellow-100 text-yellow-700 font-semibold animate-fadeInSlideRight" style={{ animationDelay: `${calvertIndex * 15}ms` }}>
-          <td colSpan={7} className="px-3 h-8">⚠ Name not found in Calvert list</td>
+          <td colSpan={7} className="px-3 h-8">⚠ Name not found in Calvert Invoice</td>
         </tr>
       );
       invoiceIndex++;
@@ -1183,7 +1183,7 @@ const Billing = () => {
       invoiceRows.push(
         <tr key={`date-mismatch-${invoiceIndex}`} className="bg-yellow-100 text-yellow-700 font-semibold animate-fadeInSlideRight" style={{ animationDelay: `${calvertIndex * 15}ms`}}>
           <td colSpan={7} className="px-3 h-8">
-            ⚠ Date mismatch: Calvert = {calvertDate}, Invoice = {invoiceDate}
+            ⚠ Date mismatch: Calvert Invoice: {calvertDate}, Rebound Invoice: {invoiceDate}
           </td>
         </tr>
       );
