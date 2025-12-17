@@ -4,7 +4,7 @@ const API_BASE = process.env.NODE_ENV === 'development'
   ? 'http://localhost:5000'
   : '';
 
-function TherapistRatesTable({ token, onRatesSaved }) {
+function TherapistRatesTable({ token, onRatesSaved, reloadKey }) {
   const [rows, setRows] = useState([]);
   const [editing, setEditing] = useState([]);
   const [dirtyRows, setDirtyRows] = useState(new Set());
@@ -18,7 +18,7 @@ function TherapistRatesTable({ token, onRatesSaved }) {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [reloadKey]);
 
   const formatVisitLabel = (code) => {
     if (!code) return '';

@@ -1620,6 +1620,7 @@ export default function Payroll({ token }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [excelBuffer, setExcelBuffer] = useState(null);
+  const [ratesReloadKey, setRatesReloadKey] = useState(0);
   const [addTherapistModal, setAddTherapistModal] = useState({
     open: false,
     firstName: '',
@@ -1910,6 +1911,8 @@ export default function Payroll({ token }) {
       newRef.therapists = therapists;
       setRefData(newRef);
 
+      setRatesReloadKey(prev => prev + 1);
+
       setRateModalState({ open: false, therapist: null });
 
       await recomputeAndMaybePromptRates({
@@ -1923,10 +1926,6 @@ export default function Payroll({ token }) {
     } finally {
       setLoading(false);
     }
-
-    setRefData(null);
-    setRateModalState({ open: false, therapist: null, missingRates: [] });
-    await handleComputePayroll();
   }
 
   async function saveCityMapping(data) {
@@ -1968,6 +1967,8 @@ export default function Payroll({ token }) {
 
       setAddTherapistModal({ open: false, firstName: '', lastName: '' });
 
+      setRatesReloadKey(prev => prev + 1);
+
       await recomputeAndMaybePromptRates({
         ref: newRef,
         parsedData: parsed,
@@ -1994,6 +1995,7 @@ export default function Payroll({ token }) {
         onRatesSaved={() => {
           setRefData(null);
         }}
+        reloadKey={ratesReloadKey}
       />
 
       <div className="bg-white rounded-xl shadow p-4 border mb-6 mt-6">
