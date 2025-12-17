@@ -76,6 +76,11 @@ function TherapistRatesTable({ token, onRatesSaved }) {
       const fetchedBillingAreas = await areasRes.json();
       const fetchedVisitTypes = await visitTypesRes.json();
 
+      console.log('therapists:', therapists);
+      console.log('rates:', rates);
+      console.log('areas:', fetchedBillingAreas);
+      console.log('visitTypes:', fetchedVisitTypes);
+
       setAreas(fetchedBillingAreas);
       setTypes(fetchedVisitTypes);
 
