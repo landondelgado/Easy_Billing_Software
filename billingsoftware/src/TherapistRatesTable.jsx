@@ -46,16 +46,23 @@ function TherapistRatesTable({ token, onRatesSaved }) {
     try {
       setLoading(true);
 
+      const authHeaders = {
+        Authorization: `Bearer ${token}`,
+      };
+
       const [therapistsRes, ratesRes, areasRes, visitTypesRes] = await Promise.all([
-        fetch(`${API_BASE}/therapists`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        fetch(`${API_BASE}/therapist_rates`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        fetch(`${API_BASE}/billing_areas`),
-        fetch(`${API_BASE}/visit_types`)
+        fetch(`${API_BASE}/therapists`, { headers: authHeaders }),
+        fetch(`${API_BASE}/therapist_rates`, { headers: authHeaders }),
+        fetch(`${API_BASE}/billing_areas`, { headers: authHeaders }),
+        fetch(`${API_BASE}/visit_types`, { headers: authHeaders }),
       ]);
+
+      console.log(
+        therapistsRes.status,
+        ratesRes.status,
+        areasRes.status,
+        visitTypesRes.status
+      );
 
       const therapists = await therapistsRes.json();
 
