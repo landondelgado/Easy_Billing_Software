@@ -66,6 +66,8 @@ function TherapistRatesTable({ token, onRatesSaved }) {
 
       const therapists = await therapistsRes.json();
 
+      console.log('therapists:', therapists);
+
       therapists.sort((a, b) =>
         a.first_name.localeCompare(b.first_name, undefined, {
           sensitivity: 'base',
@@ -73,12 +75,13 @@ function TherapistRatesTable({ token, onRatesSaved }) {
       );
 
       const rates = await ratesRes.json();
-      const fetchedBillingAreas = await areasRes.json();
-      const fetchedVisitTypes = await visitTypesRes.json();
-
-      console.log('therapists:', therapists);
       console.log('rates:', rates);
+      const fetchedBillingAreas = await areasRes.json();
       console.log('areas:', fetchedBillingAreas);
+      const fetchedVisitTypes = await visitTypesRes.json();
+      
+      
+      
       console.log('visitTypes:', fetchedVisitTypes);
 
       setAreas(fetchedBillingAreas);
