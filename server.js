@@ -176,13 +176,6 @@ app.post('/invoicenumber', authenticate, async (req, res) => {
     }
 });
 
-if (process.env.NODE_ENV === 'production') {
-    app.use(express.static(path.join(__dirname, 'billingsoftware/build')));
-    app.get('*name', (req, res) => {
-        res.sendFile(path.join(__dirname, 'billingsoftware/build/index.html'));
-    });
-}
-
 app.get('/therapists', async (req, res) => {
   const { rows } = await pool.query(`
     SELECT
@@ -476,6 +469,13 @@ app.post('/therapists/update_many', async (req, res) => {
     client.release();
   }
 });
+
+if (process.env.NODE_ENV === 'production') {
+    app.use(express.static(path.join(__dirname, 'billingsoftware/build')));
+    app.get('*name', (req, res) => {
+        res.sendFile(path.join(__dirname, 'billingsoftware/build/index.html'));
+    });
+}
 
 const PORT = process.env.PORT || 5000;
 
