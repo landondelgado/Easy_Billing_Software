@@ -1661,11 +1661,11 @@ export default function Payroll({ token }) {
     // - therapist_rates (therapist_id, billing_area_id, visit_type_id, rate)
 
     const [therapists, billingCities, billingAreas, visitTypes, therapistRates] = await Promise.all([
-      apiGet('/api/therapists'),
-      apiGet('/api/billing_cities'),
-      apiGet('/api/billing_areas'),
-      apiGet('/api/visit_types'),
-      apiGet('/api/therapist_rates'),
+      apiGet(`/therapists`),
+      apiGet(`/billing_cities`),
+      apiGet(`/billing_areas`),
+      apiGet(`/visit_types`),
+      apiGet(`/therapist_rates`),
     ]);
 
     return { therapists, billingCities, billingAreas, visitTypes, therapistRates };
@@ -1818,6 +1818,16 @@ export default function Payroll({ token }) {
     }
   }
 
+  function formatDateWithLeadingZeros(date) {
+    const d = new Date(date);
+
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const yyyy = d.getFullYear();
+
+    return `${mm}_${dd}_${yyyy}`;
+  }
+
   function handleDownloadExcel() {
     if (!excelBuffer) return;
 
@@ -1825,12 +1835,14 @@ export default function Payroll({ token }) {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     });
 
-    const namePart =
-      payPeriod?.start && payPeriod?.end
-        ? `${payPeriod.start}_${payPeriod.end}`
-        : 'payroll';
+    // const namePart =
+    //   payPeriod?.start && payPeriod?.end
+    //     ? `${payPeriod.start}_${payPeriod.end}`
+    //     : 'payroll';
 
-    saveAs(blob, `Payroll_${namePart}.xlsx`);
+    const formattedEndDate = formatDateWithLeadingZeros(payPeriod.end);
+
+    saveAs(blob, `Payroll_${formattedEndDate}.xlsx`);
   }
 
   async function saveRatesForTherapist(draft) {
@@ -1847,7 +1859,7 @@ export default function Payroll({ token }) {
       if ('__mileage_rate' in draft) {
         const mileage = Number(draft.__mileage_rate);
         if (Number.isFinite(mileage)) {
-          await apiPost('/api/therapists/update_mileage', {
+          await apiPost(`/therapists/update_mileage`, {
             therapist_id: therapist.therapist_id,
             mileage_rate: mileage,
           });
@@ -1885,13 +1897,13 @@ export default function Payroll({ token }) {
 
       // NOTE: You must implement this endpoint on the backend.
       // It should upsert into therapist_rates.
-      await apiPost('/api/therapist_rates/upsert_many', { rows: upserts });
+      await apiPost(`/therapist_rates/upsert_many`, { rows: upserts });
 
       // Reload rates and retry
       const newRef = { ...refData };
       const [therapistRates, therapists] = await Promise.all([
-        apiGet('/api/therapist_rates'),
-        apiGet('/api/therapists'),
+        apiGet(`/therapist_rates`),
+        apiGet(`/therapists`),
       ]);
 
       newRef.therapistRates = therapistRates;
@@ -1921,10 +1933,10 @@ export default function Payroll({ token }) {
     try {
       setLoading(true);
 
-      await apiPost('/api/billing_cities', data);
+      await apiPost(`/billing_cities`, data);
 
       // reload billing cities
-      const billingCities = await apiGet('/api/billing_cities');
+      const billingCities = await apiGet(`/billing_cities`);
 
       const newRef = { ...refData, billingCities };
       setRefData(newRef);
@@ -1948,9 +1960,9 @@ export default function Payroll({ token }) {
     try {
       setLoading(true);
 
-      await apiPost('/api/therapists', data);
+      await apiPost(`/therapists`, data);
 
-      const therapists = await apiGet('/api/therapists');
+      const therapists = await apiGet(`/therapists`);
       const newRef = { ...refData, therapists };
       setRefData(newRef);
 
@@ -1991,7 +2003,11 @@ export default function Payroll({ token }) {
               type="file"
               accept=".csv,.xlsx"
               onChange={handleFileUpload}
-              className="block"
+              className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4
+                  file:rounded-md file:border-0
+                  file:text-base file:font-semibold
+                  file:bg-sky-100 file:text-blue-900
+                  hover:file:bg-sky-200 mb-6"
             />
             {file && (
               <div className="text-sm text-gray-700">
@@ -2029,7 +2045,7 @@ export default function Payroll({ token }) {
           </div>
         </div>
 
-        <div className="mt-3 text-sm text-gray-700">
+        <div className="text-sm text-gray-700">
           {payPeriod?.start && payPeriod?.end ? (
             <div>
               <span className="font-semibold">Pay period:</span> {payPeriod.start} to {payPeriod.end}

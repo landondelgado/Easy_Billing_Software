@@ -183,7 +183,7 @@ if (process.env.NODE_ENV === 'production') {
     });
 }
 
-app.get('/api/therapists', async (req, res) => {
+app.get('/therapists', async (req, res) => {
   const { rows } = await pool.query(`
     SELECT
       therapist_id,
@@ -198,7 +198,7 @@ app.get('/api/therapists', async (req, res) => {
   res.json(rows);
 });
 
-app.get('/api/therapist_rates', async (req, res) => {
+app.get('/therapist_rates', async (req, res) => {
   const { rows } = await pool.query(`
     SELECT
       therapist_id,
@@ -210,7 +210,7 @@ app.get('/api/therapist_rates', async (req, res) => {
   res.json(rows);
 });
 
-app.post('/api/therapist_rates/upsert_many', async (req, res) => {
+app.post('/therapist_rates/upsert_many', async (req, res) => {
   const { rows } = req.body;
 
   const values = rows
@@ -238,7 +238,7 @@ app.post('/api/therapist_rates/upsert_many', async (req, res) => {
   res.json({ success: true });
 });
 
-app.get('/api/billing_cities', async (req, res) => {
+app.get('/billing_cities', async (req, res) => {
   try {
     const { rows } = await pool.query(`
       SELECT
@@ -256,7 +256,7 @@ app.get('/api/billing_cities', async (req, res) => {
   }
 });
 
-app.get('/api/billing_areas', async (req, res) => {
+app.get('/billing_areas', async (req, res) => {
   try {
     const { rows } = await pool.query(`
       SELECT
@@ -273,7 +273,7 @@ app.get('/api/billing_areas', async (req, res) => {
   }
 });
 
-app.get('/api/visit_types', async (req, res) => {
+app.get('/visit_types', async (req, res) => {
   try {
     const { rows } = await pool.query(`
       SELECT
@@ -290,7 +290,7 @@ app.get('/api/visit_types', async (req, res) => {
   }
 });
 
-app.post('/api/billing_cities', async (req, res) => {
+app.post('/billing_cities', async (req, res) => {
   try {
     const { city_name, billing_area_id, city_classification } = req.body;
 
@@ -319,7 +319,7 @@ app.post('/api/billing_cities', async (req, res) => {
 });
 
 // Update therapist mileage rate
-app.post('/api/therapists/update_mileage', async (req, res) => {
+app.post('/therapists/update_mileage', async (req, res) => {
   const { therapist_id, mileage_rate } = req.body;
 
   if (!therapist_id || mileage_rate == null) {
@@ -364,7 +364,7 @@ app.post('/api/therapists/update_mileage', async (req, res) => {
   }
 });
 
-app.post('/api/therapists', async (req, res) => {
+app.post('/therapists', async (req, res) => {
   const {
     first_name,
     last_name,
@@ -424,7 +424,7 @@ app.post('/api/therapists', async (req, res) => {
 });
 
 // Batch update therapists (partial updates allowed)
-app.post('/api/therapists/update_many', async (req, res) => {
+app.post('/therapists/update_many', async (req, res) => {
   const { rows = [] } = req.body;
 
   if (!Array.isArray(rows) || rows.length === 0) {

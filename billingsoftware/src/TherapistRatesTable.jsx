@@ -47,14 +47,14 @@ function TherapistRatesTable({ token, onRatesSaved }) {
       setLoading(true);
 
       const [therapistsRes, ratesRes, areasRes, visitTypesRes] = await Promise.all([
-        fetch(`${API_BASE}/api/therapists`, {
+        fetch(`${API_BASE}/therapists`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        fetch(`${API_BASE}/api/therapist_rates`, {
+        fetch(`${API_BASE}/therapist_rates`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        fetch(`${API_BASE}/api/billing_areas`),
-        fetch(`${API_BASE}/api/visit_types`)
+        fetch(`${API_BASE}/billing_areas`),
+        fetch(`${API_BASE}/visit_types`)
       ]);
 
       const therapists = await therapistsRes.json();
@@ -254,7 +254,7 @@ function TherapistRatesTable({ token, onRatesSaved }) {
 
       // 2️⃣ Persist therapist updates
       if (therapistUpdates.length > 0) {
-        await fetch(`${API_BASE}/api/therapists/update_many`, {
+        await fetch(`${API_BASE}/therapists/update_many`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -266,7 +266,7 @@ function TherapistRatesTable({ token, onRatesSaved }) {
 
       // 3️⃣ Persist rate updates
       if (rateUpserts.length > 0) {
-        await fetch(`${API_BASE}/api/therapist_rates/upsert_many`, {
+        await fetch(`${API_BASE}/therapist_rates/upsert_many`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -388,7 +388,7 @@ function TherapistRatesTable({ token, onRatesSaved }) {
                       <button
                         type="button"
                         onClick={() => toggleArea(col.billing_area_id)}
-                        className="flex items-center justify-center gap-1 mx-auto min-w-[100px]"
+                        className="flex items-center justify-center gap-1 mx-auto min-w-[125px]"
                       >
                         <svg
                           className={`w-3 h-3 transition-transform ${
